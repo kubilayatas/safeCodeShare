@@ -68,7 +68,11 @@ type Props = {
 
 // 2000 satırı aşarsa basit sanallaştırma uygula.
 const VIRTUALIZE_THRESHOLD = 2000;
-const LINE_HEIGHT = 22;
+
+// Satır yüksekliği yazı boyutuyla birlikte büyümeli; sabit 22px büyük yazıda satırları üst üste bindiriyordu.
+function lineHeightFor(fontSize: number): number {
+  return Math.round(fontSize * 1.5);
+}
 
 export default function ProtectedCodeView({
   viewToken,
@@ -85,7 +89,9 @@ export default function ProtectedCodeView({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
-  const [version, setVersion] = useState(0);
+  // Son uygulanan sürüm. State yerine ref: SSE dinleyicisi tek sefer kurulduğu için
+  // state kullanılırsa hep ilk değeri (0) görüyordu ve sürüm atlaması fark edilmiyordu.
+  const versionRef = useRef(0);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(600);
   const [cursor, setCursor] = useState<ProtectedTeacherCursor>(null);
@@ -127,17 +133,16 @@ export default function ProtectedCodeView({
 
       if (msg.type === 'snapshot') {
         setLines(msg.lines);
-        setVersion(msg.v);
+        versionRef.current = msg.v;
         onLanguageResolved?.(msg.language);
         onTitleResolved?.(msg.title);
         return;
       }
       if (msg.type === 'patch') {
         // Sürüm atlaması varsa bağlantıyı yenile
-        if (msg.v !== version + 1 && version !== 0) {
+        if (versionRef.current === 0 || msg.v !== versionRef.current + 1) {
+          // Arada bir yama kaçırıldı: temiz bir snapshot için sayfayı yenile.
           es.close();
-          // yeni bağlantı kurmak için state reset; useEffect yeniden çalışmayacağı için
-          // burada basitçe sayfayı yeniden yükle
           window.location.reload();
           return;
         }
@@ -146,7 +151,7 @@ export default function ProtectedCodeView({
           next.splice(msg.from, msg.deleteCount, ...msg.lines);
           return next;
         });
-        setVersion(msg.v);
+        versionRef.current = msg.v;
         return;
       }
       if (msg.type === 'cursor') {
@@ -184,14 +189,16 @@ export default function ProtectedCodeView({
       }
       esRef.current = null;
     };
-    // version bağımlılığını kaldırıyoruz; atlama tespiti ref üzerinden yapılabilirdi,
-    // basit tutmak için yeniden bağlanma senaryosunda sayfa yenileniyor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewToken]);
 
   // --- Kopyalama engelleri ---
   useEffect(() => {
+    const isFormField = (t: EventTarget | null): boolean =>
+      t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement;
+
     const prevent = (e: Event): void => {
+      if (e.type === 'selectstart' && isFormField(e.target)) return;
       e.preventDefault();
     };
 
@@ -210,6 +217,8 @@ export default function ProtectedCodeView({
     const onKeydown = (e: KeyboardEvent): void => {
       const mod = e.ctrlKey || e.metaKey;
       if (!mod) return;
+      // Ayarlar panelindeki takma ad gibi alanlarda normal klavye kısayolları çalışsın.
+      if (isFormField(e.target)) return;
       const k = e.key.toLowerCase();
       if (k === 'a' || k === 'c' || k === 'x' || k === 's' || k === 'p') {
         // Ctrl+F'ye izin ver
@@ -245,6 +254,8 @@ export default function ProtectedCodeView({
     return () => ro.disconnect();
   }, []);
 
+  const LINE_HEIGHT = lineHeightFor(fontSize);
+
   // --- Takip ---
   useEffect(() => {
     if (!followEnabled) return;
@@ -257,7 +268,7 @@ export default function ProtectedCodeView({
     if (!el) return;
     const target = (c.line - 1) * LINE_HEIGHT - el.clientHeight / 2 + LINE_HEIGHT / 2;
     el.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
-  }, [followEnabled, paused, cursor]);
+  }, [followEnabled, paused, cursor, LINE_HEIGHT]);
 
   const onScroll = (): void => {
     const el = scrollRef.current;
@@ -370,8 +381,10 @@ function ProtectedLine({
           <span
             className="p-cursor"
             style={{
-              // ch birimi ile sütun konumu (monospace)
-              marginLeft: `${Math.max(0, cursor.col - 1)}ch`,
+              // Satırın BAŞINDAN itibaren ch birimiyle sütun konumu (monospace).
+              // 6px = .p-content padding-left. (Eskiden marginLeft kullanılıyordu ve imleç
+              // satır sonundan itibaren kaydırılıyordu.)
+              left: `calc(6px + ${Math.max(0, cursor.col - 1)}ch)`,
               background: cursor.color
             }}
             title={cursor.name}

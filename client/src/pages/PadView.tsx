@@ -68,6 +68,7 @@ export default function PadView(): JSX.Element {
   const [resolvedLanguage, setResolvedLanguage] = useState<string>('plaintext');
   const followRef = useRef(follow);
   followRef.current = follow;
+  const lastAuthReload = useRef(0);
 
   const load = useCallback(async (): Promise<void> => {
     if (!viewToken) return;
@@ -271,7 +272,17 @@ export default function PadView(): JSX.Element {
             onPresence={setPresence}
             onCursorChange={setCursor}
             onReady={setCtx}
-            onError={(msg) => toast.show(msg, 'error')}
+            onError={(msg) => {
+              // Bağlantı reddedildiyse öğretmen ayarı değiştirmiştir (ör. kopyalama korumasını
+              // açtı, linki kapattı, şifre koydu). Bilgiyi yeniden çekip doğru ekrana geç.
+              const now = Date.now();
+              if (now - lastAuthReload.current > 5000) {
+                lastAuthReload.current = now;
+                void load();
+              } else {
+                toast.show(msg, 'error');
+              }
+            }}
           />
         )}
       </div>

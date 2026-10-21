@@ -1004,7 +1004,6 @@ kbd {
 .p-line {
   display: flex;
   align-items: flex-start;
-  min-height: 22px;
 }
 .p-gutter {
   width: 48px;
@@ -1035,9 +1034,10 @@ kbd {
 }
 .p-cursor-label {
   position: absolute;
-  top: -1.2em;
+  bottom: 100%;
   left: 0;
   font-size: 11px;
+  line-height: 1.4;
   font-family: var(--font-ui);
   color: #fff;
   padding: 1px 5px;

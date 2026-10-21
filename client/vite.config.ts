@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  // Kök klasördeki .env dosyasını oku (yalnızca VITE_ ile başlayan değişkenler istemciye geçer).
+  envDir: '..',
   server: {
     port: 5173,
     strictPort: true,

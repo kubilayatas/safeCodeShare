@@ -1,0 +1,137 @@
+kodsinif/
+├─ package.json
+├─ tsconfig.base.json
+├─ .env.example
+├─ .gitignore
+├─ .dockerignore
+├─ Dockerfile
+├─ docker-compose.yml
+├─ Caddyfile
+├─ README.md
+├─ DEPLOY.md
+│
+├─ shared/
+│  ├─ package.json
+│  ├─ tsconfig.json
+│  └─ src/
+│     ├─ index.ts
+│     ├─ languages.ts
+│     ├─ types.ts
+│     ├─ schemas.ts
+│     └─ highlight.ts              # tagHighlighter → tk-* sınıf eşlemesi (EK/§C)
+│
+├─ server/
+│  ├─ package.json
+│  ├─ tsconfig.json
+│  ├─ vitest.config.ts
+│  └─ src/
+│     ├─ index.ts
+│     ├─ config.ts
+│     ├─ db/
+│     │  ├─ index.ts
+│     │  ├─ migrate.ts
+│     │  └─ migrations/
+│     │     ├─ 001_init.sql
+│     │     └─ 002_copy_protect.sql        # EK/§B
+│     ├─ auth/
+│     │  ├─ sessions.ts
+│     │  ├─ middleware.ts
+│     │  └─ passwords.ts
+│     ├─ access/
+│     │  └─ resolveAccess.ts               # channel: 'yjs' | 'protected' (EK/§E)
+│     ├─ collab/
+│     │  ├─ hocuspocus.ts
+│     │  ├─ persistence.ts
+│     │  ├─ presence.ts
+│     │  └─ directEdit.ts
+│     ├─ protect/                          # EK/§D
+│     │  ├─ parsers.ts
+│     │  ├─ render.ts
+│     │  ├─ poison.ts
+│     │  └─ hub.ts
+│     ├─ format/
+│     │  ├─ index.ts
+│     │  ├─ prettier.ts
+│     │  ├─ python.ts
+│     │  ├─ clang.ts
+│     │  ├─ go.ts
+│     │  └─ sql.ts
+│     ├─ routes/
+│     │  ├─ auth.ts
+│     │  ├─ admin.ts
+│     │  ├─ courses.ts
+│     │  ├─ topics.ts
+│     │  ├─ pads.ts
+│     │  ├─ versions.ts
+│     │  ├─ public.ts                      # /stream SSE ucu da burada (EK/§D)
+│     │  ├─ format.ts
+│     │  ├─ export.ts
+│     │  └─ health.ts
+│     ├─ jobs/
+│     │  ├─ cleanup.ts
+│     │  └─ backup.ts
+│     └─ util/
+│        ├─ tokens.ts
+│        ├─ errors.ts
+│        ├─ filename.ts
+│        └─ timingSafe.ts
+│  ├─ scripts/
+│  │  ├─ test-readonly.ts
+│  │  ├─ test-format.ts
+│  │  ├─ test-protected.ts                 # EK/§I
+│  │  └─ backup.ts
+│  └─ test/
+│     ├─ access.test.ts
+│     ├─ api.test.ts
+│     ├─ format.test.ts
+│     └─ poison.test.ts                    # EK/§I
+│
+└─ client/
+   ├─ package.json
+   ├─ tsconfig.json
+   ├─ vite.config.ts
+   ├─ index.html
+   └─ src/
+      ├─ main.tsx
+      ├─ App.tsx
+      ├─ api.ts
+      ├─ styles/
+      │  ├─ base.css
+      │  └─ themes.css                     # tk-* sınıfları + tema değişkenleri (EK/§C)
+      ├─ pages/
+      │  ├─ Login.tsx
+      │  ├─ Dashboard.tsx
+      │  ├─ PadOwner.tsx
+      │  ├─ PadEdit.tsx
+      │  ├─ PadView.tsx                    # copy_protect'e göre yönlendirir
+      │  ├─ ProtectedView.tsx              # EK/§F
+      │  ├─ Course.tsx
+      │  ├─ Embed.tsx
+      │  ├─ History.tsx
+      │  ├─ Admin.tsx
+      │  ├─ Profile.tsx
+      │  └─ NotFound.tsx
+      ├─ components/
+      │  ├─ Editor.tsx
+      │  ├─ ProtectedCodeView.tsx          # EK/§F
+      │  ├─ Toolbar.tsx
+      │  ├─ StatusBar.tsx
+      │  ├─ ShareDialog.tsx                # copy-protect anahtarı (EK/§G)
+      │  ├─ SettingsPanel.tsx
+      │  ├─ LanguagePicker.tsx
+      │  ├─ CourseTree.tsx
+      │  ├─ PadCard.tsx                    # 🛡 rozeti (EK/§G)
+      │  ├─ Toast.tsx
+      │  ├─ ConfirmDialog.tsx
+      │  ├─ ShortcutsHelp.tsx
+      │  ├─ QrCode.tsx
+      │  ├─ ConnectionDot.tsx
+      │  └─ PresenceBar.tsx
+      └─ editor/
+         ├─ setup.ts
+         ├─ languages.ts
+         ├─ themes.ts
+         ├─ keymap.ts
+         ├─ follow.ts
+         ├─ applyFormatted.ts
+         └─ settings.ts

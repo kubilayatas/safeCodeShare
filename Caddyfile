@@ -1,0 +1,12 @@
+{$DOMAIN} {
+  @stream path /api/public/view/*/stream
+  handle @stream {
+    reverse_proxy app:3000 {
+      flush_interval -1
+    }
+  }
+  handle {
+    encode gzip zstd
+    reverse_proxy app:3000
+  }
+}

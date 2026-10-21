@@ -27,7 +27,9 @@ export default function AdBanner({
   responsive = true,
   style,
   className = '',
-  hideIfEmpty = false
+  // Reklam kimliği tanımlı değilse hiçbir şey gösterme. (Eskiden öğrencilerin ekranında
+  // "REKLAM ALANI — .env dosyasına ... ekleyin" kutusu çıkıyordu.)
+  hideIfEmpty = true
 }: AdBannerProps): JSX.Element | null {
   const adRef = useRef<HTMLModElement | null>(null);
   const pushedRef = useRef(false);
