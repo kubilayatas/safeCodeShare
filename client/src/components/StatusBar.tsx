@@ -1,4 +1,4 @@
-import { languageLabel } from '@kodsinif/shared';
+import { languageLabel } from '@safecodeshare/shared';
 import type { CursorInfo } from './Editor';
 
 type Props = {

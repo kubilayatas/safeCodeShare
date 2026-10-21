@@ -1,5 +1,5 @@
 # ==========================================
-# KodSınıf - Production Dockerfile (Multi-stage)
+# SafeCodeShare - Production Dockerfile (Multi-stage)
 # ==========================================
 
 # 1. Aşama: Derleme (Builder)
@@ -63,6 +63,6 @@ USER node
 
 # Sağlık kontrolü
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://localhost:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+  CMD node -e "fetch('http://localhost:'+(process.env.PORT||3000)+'/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
 CMD ["npm", "--workspace", "server", "run", "start"]

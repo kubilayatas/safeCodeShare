@@ -1,7 +1,7 @@
 // Temiz metni Lezer ile ayrıştırıp, satır satır `[text, cls]` span dizisine çevirir.
 // Bu fonksiyon ZEHİRLENMEMİŞ metin üzerinde çalışır; zehirleme ayrı adımdır (poison.ts).
 import { highlightTree } from '@lezer/highlight';
-import { tkHighlighter } from '@kodsinif/shared';
+import { tkHighlighter } from '@safecodeshare/shared';
 import { getParserFor } from './parsers';
 
 export type LineSpan = [text: string, cls: string];

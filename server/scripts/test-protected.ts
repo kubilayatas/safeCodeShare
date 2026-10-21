@@ -23,7 +23,7 @@ const tsxCli = require.resolve('tsx/cli');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serverRoot = path.resolve(__dirname, '..');
-const TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'kodsinif-prot-'));
+const TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'safecodeshare-prot-'));
 const PORT = 3900 + Math.floor(Math.random() * 400);
 
 type CookieJar = { sid: string | null };
@@ -200,7 +200,7 @@ async function main(): Promise<void> {
     NODE_ENV: 'test' as const,
     PORT: String(PORT),
     PUBLIC_URL: `http://127.0.0.1:${PORT}`,
-    APP_NAME: 'KodSınıfProt',
+    APP_NAME: 'SafeCodeShareProt',
     DATA_DIR: TMP_DIR,
     COOKIE_SECRET: 'y'.repeat(32),
     SESSION_DAYS: '30',

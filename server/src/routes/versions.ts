@@ -7,8 +7,8 @@
 
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
-import { CreateVersionSchema, languageExtension } from '@kodsinif/shared';
-import type { VersionFull, VersionSummary } from '@kodsinif/shared';
+import { CreateVersionSchema, languageExtension } from '@safecodeshare/shared';
+import type { VersionFull, VersionSummary } from '@safecodeshare/shared';
 import type { DB } from '../db';
 import { sendError } from '../util/errors';
 import { newEditToken, newPadId, newViewToken } from '../util/tokens';

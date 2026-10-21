@@ -1,6 +1,6 @@
-# KodSınıf 🎓
+# SafeCodeShare 🎓
 
-**KodSınıf**, öğretmenlerin ve eğitmenlerin ders sırasında öğrencileriyle anlık ve gerçek zamanlı kod paylaşımı yapabilmesi için tasarlanmış, modern, hafif ve bağımsız barındırılabilir (self-hosted) bir web platformudur.
+**SafeCodeShare**, öğretmenlerin ve eğitmenlerin ders sırasında öğrencileriyle anlık ve gerçek zamanlı kod paylaşımı yapabilmesi için tasarlanmış, modern, hafif ve bağımsız barındırılabilir (self-hosted) bir web platformudur.
 
 ---
 
@@ -55,7 +55,7 @@
 ### 1. Depoyu Klonlayın ve Bağımlılıkları Kurun
 ```bash
 git clone <repo-url>
-cd kodsinif
+cd safecodeshare
 npm install
 ```
 
@@ -113,7 +113,7 @@ npm run backup
 
 ## 🚀 Canlıya Dağıtım (Production)
 
-KodSınıf, tek bir Docker komutuyla ayağa kaldırılabilecek şekilde optimize edilmiştir:
+SafeCodeShare, tek bir Docker komutuyla ayağa kaldırılabilecek şekilde optimize edilmiştir:
 ```bash
 docker compose up -d --build
 ```
@@ -123,3 +123,7 @@ Ayrıntılı bulut kurulum rehberi (Oracle Cloud Always Free, Google Cloud e2-mi
 
 ## 📄 Lisans
 Bu proje eğitim amaçlı geliştirilmiştir. Tüm hakları saklıdır.
+
+## Render'a kurulum
+
+Render üzerinde çalıştırmak için `RENDER.md` dosyasındaki adımları izleyin. Ücretsiz planda verilerin kalıcı olmadığını unutmayın.

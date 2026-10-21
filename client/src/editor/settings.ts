@@ -1,4 +1,4 @@
-// Kullanıcı ayarları localStorage'da `kodsinif.settings` anahtarında saklanır.
+// Kullanıcı ayarları localStorage'da `safecodeshare.settings` anahtarında saklanır.
 
 export type ThemeId = 'monokai' | 'notepad' | 'onedark';
 
@@ -11,7 +11,8 @@ export type AppSettings = {
   nickname: string;
 };
 
-const KEY = 'kodsinif.settings';
+const KEY = 'safecodeshare.settings';
+const LEGACY_KEY = 'kodsinif.settings'; // eski ad; varsa bir kez okunur
 
 const DEFAULTS: AppSettings = {
   theme: 'monokai',
@@ -24,7 +25,7 @@ const DEFAULTS: AppSettings = {
 
 export function loadSettings(): AppSettings {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY) ?? localStorage.getItem(LEGACY_KEY);
     if (!raw) return { ...DEFAULTS };
     const parsed = JSON.parse(raw) as Partial<AppSettings>;
     // Kaba doğrulama

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { PadFull, VersionFull, VersionSummary } from '@kodsinif/shared';
-import { languageLabel } from '@kodsinif/shared';
+import type { PadFull, VersionFull, VersionSummary } from '@safecodeshare/shared';
+import { languageLabel } from '@safecodeshare/shared';
 import { apiFetch, ApiError } from '../api';
 import { useToast } from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';

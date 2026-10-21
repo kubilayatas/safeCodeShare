@@ -1,0 +1,30 @@
+# Render Blueprint — SafeCodeShare
+# İsteğe bağlı: Render panelinde "New > Blueprint" ile bu dosyadan tek tıkla kurulum yapılabilir.
+# Servisi elle oluşturduysanız bu dosyaya gerek yok; RENDER.md'deki kontrol listesini kullanın.
+services:
+  - type: web
+    name: safecodeshare
+    runtime: docker
+    plan: free
+    region: frankfurt          # Türkiye'ye en yakın bölge; servis oluşturulduktan sonra değiştirilemez
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    # Ücretsiz planda disk kalıcı değil: HER deploy tüm verileri siler.
+    # Bu yüzden her GitHub push'unda otomatik deploy kapalı; deploy'u elle yaparsınız.
+    autoDeployTrigger: "off"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_NAME
+        value: SafeCodeShare
+      - key: DATA_DIR
+        value: /data
+      - key: COOKIE_SECRET
+        generateValue: true     # Render 256 bitlik rastgele bir değer üretir
+      - key: ADMIN_EMAIL
+        sync: false             # kurulumda panel sizden ister
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_NAME
+        value: Öğretmen

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { PublicEditInfo } from '@kodsinif/shared';
+import type { PublicEditInfo } from '@safecodeshare/shared';
 import { apiFetch, ApiError, formatCode } from '../api';
 import type { FormatError } from '../api';
 import { useToast } from '../components/Toast';

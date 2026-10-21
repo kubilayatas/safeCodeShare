@@ -25,6 +25,6 @@ export default defineConfig({
     sourcemap: false
   },
   optimizeDeps: {
-    exclude: ['@kodsinif/shared']
+    exclude: ['@safecodeshare/shared']
   }
 });

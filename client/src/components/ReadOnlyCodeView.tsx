@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { EditorState } from '@codemirror/state';
 import { EditorView, lineNumbers } from '@codemirror/view';
 import { syntaxHighlighting } from '@codemirror/language';
-import { tkHighlighter } from '@kodsinif/shared';
+import { tkHighlighter } from '@safecodeshare/shared';
 import { languageExtensionFor } from '../editor/setup';
 import { baseEditorTheme } from '../editor/themes';
 import type { ThemeId } from '../editor/settings';

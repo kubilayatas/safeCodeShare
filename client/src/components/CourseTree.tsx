@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { PadSummary, TreeCourse } from '@kodsinif/shared';
+import type { PadSummary, TreeCourse } from '@safecodeshare/shared';
 
 type Selection =
   | { kind: 'none' }

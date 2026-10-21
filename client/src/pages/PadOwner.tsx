@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import type { PadFull } from '@kodsinif/shared';
-import { languageLabel } from '@kodsinif/shared';
+import type { PadFull } from '@safecodeshare/shared';
+import { languageLabel } from '@safecodeshare/shared';
 import { apiFetch, ApiError, formatCode } from '../api';
 import type { FormatError } from '../api';
 import { useToast } from '../components/Toast';

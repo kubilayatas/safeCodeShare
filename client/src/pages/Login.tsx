@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { PublicUser } from '@kodsinif/shared';
+import type { PublicUser } from '@safecodeshare/shared';
 import { apiFetch, ApiError } from '../api';
 import { useToast } from '../components/Toast';
 
@@ -36,7 +36,7 @@ export default function Login({ onLogin }: Props): JSX.Element {
   return (
     <div className="login-page">
       <form className="login-card" onSubmit={submit} noValidate>
-        <h1 className="login-title">KodSınıf</h1>
+        <h1 className="login-title">SafeCodeShare</h1>
         <p className="login-sub">Öğretmen girişi</p>
 
         {error && <div className="alert">{error}</div>}

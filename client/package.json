@@ -1,5 +1,5 @@
 {
-  "name": "@kodsinif/client",
+  "name": "@safecodeshare/client",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@kodsinif/shared": "*",
+    "@safecodeshare/shared": "*",
     "@codemirror/autocomplete": "^6.18.3",
     "@codemirror/commands": "^6.7.1",
     "@codemirror/lang-cpp": "^6.0.2",

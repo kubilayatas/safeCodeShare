@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
-import { CreateUserSchema, UpdateUserSchema } from '@kodsinif/shared';
+import { CreateUserSchema, UpdateUserSchema } from '@safecodeshare/shared';
 import type { DB } from '../db';
 import { requireAdmin } from '../auth/middleware';
 import { hashPassword } from '../auth/passwords';

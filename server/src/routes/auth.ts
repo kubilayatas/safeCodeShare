@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { ChangePasswordSchema, LoginSchema, UpdateProfileSchema } from '@kodsinif/shared';
+import { ChangePasswordSchema, LoginSchema, UpdateProfileSchema } from '@safecodeshare/shared';
 import type { AppConfig } from '../config';
 import type { DB } from '../db';
 import { hashPassword, verifyPassword } from '../auth/passwords';

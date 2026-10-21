@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import type { PublicViewInfo } from '@kodsinif/shared';
+import type { PublicViewInfo } from '@safecodeshare/shared';
 import { apiFetch, ApiError } from '../api';
 import Editor from '../components/Editor';
 import ProtectedCodeView from '../components/ProtectedCodeView';

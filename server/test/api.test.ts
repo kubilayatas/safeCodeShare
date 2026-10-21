@@ -8,12 +8,12 @@ import request from 'supertest';
 import type { Express } from 'express';
 
 // Test ortamı env'i importlardan önce ayarlanmalı
-const TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'kodsinif-test-'));
+const TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'safecodeshare-test-'));
 
 process.env.NODE_ENV = 'test';
 process.env.PORT = '0';
 process.env.PUBLIC_URL = 'http://localhost:5173';
-process.env.APP_NAME = 'KodSınıfTest';
+process.env.APP_NAME = 'SafeCodeShareTest';
 process.env.DATA_DIR = TMP_DIR;
 process.env.COOKIE_SECRET = 'x'.repeat(32);
 process.env.SESSION_DAYS = '30';
@@ -97,7 +97,7 @@ async function loginAgent(app: Express, email: string, password: string): Promis
   return agent;
 }
 
-describe('KodSınıf API', () => {
+describe('SafeCodeShare API', () => {
   let app: Express;
   let db: ReturnType<typeof openDatabase>;
   let teacherA: request.Agent;

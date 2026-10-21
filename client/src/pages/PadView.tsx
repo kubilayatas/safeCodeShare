@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import type { PublicViewInfo } from '@kodsinif/shared';
+import type { PublicViewInfo } from '@safecodeshare/shared';
 import { apiFetch, ApiError } from '../api';
 import { useToast } from '../components/Toast';
 import Editor from '../components/Editor';

@@ -1,5 +1,5 @@
 {
-  "name": "@kodsinif/server",
+  "name": "@safecodeshare/server",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     "backup": "tsx scripts/backup.ts"
   },
   "dependencies": {
-  "@kodsinif/shared": "*",
+  "@safecodeshare/shared": "*",
   "@lezer/css": "^1.1.9",
   "@lezer/cpp": "^1.1.2",
   "@lezer/go": "^1.0.0",

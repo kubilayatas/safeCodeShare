@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import type { PublicUser } from '@kodsinif/shared';
+import type { PublicUser } from '@safecodeshare/shared';
 import { apiFetch } from './api';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';

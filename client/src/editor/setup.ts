@@ -34,7 +34,7 @@ import {
 import { yCollab, yUndoManagerKeymap } from 'y-codemirror.next';
 import type * as Y from 'yjs';
 import type { Awareness } from 'y-protocols/awareness';
-import { tkHighlighter } from '@kodsinif/shared';
+import { tkHighlighter } from '@safecodeshare/shared';
 import { baseEditorTheme } from './themes';
 import { loadLanguage } from './languages';
 import { baseKeymap } from './keymap';

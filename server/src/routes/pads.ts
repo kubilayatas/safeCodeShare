@@ -4,8 +4,8 @@ import {
   RotateTokensSchema,
   UpdatePadSchema,
   languageExtension
-} from '@kodsinif/shared';
-import type { PadFull, PadSummary } from '@kodsinif/shared';
+} from '@safecodeshare/shared';
+import type { PadFull, PadSummary } from '@safecodeshare/shared';
 import type { DB } from '../db';
 import { requireAuth } from '../auth/middleware';
 import { hashPassword } from '../auth/passwords';

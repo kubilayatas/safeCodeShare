@@ -1,7 +1,7 @@
 // Biçimlendirici kayıt tablosu (spesifikasyon §9).
 // prettier tabanlılar tek bir dosyada; WASM tabanlılar kendi dosyalarında.
 
-import { LANGUAGES } from '@kodsinif/shared';
+import { LANGUAGES } from '@safecodeshare/shared';
 import { formatPrettier } from './prettier';
 import { formatPython } from './python';
 import { formatClang } from './clang';

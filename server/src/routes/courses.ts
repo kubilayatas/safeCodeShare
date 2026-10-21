@@ -5,8 +5,8 @@ import {
   ReorderSchema,
   UpdateCourseSchema,
   languageExtension
-} from '@kodsinif/shared';
-import type { TreeCourse, TreeResponse } from '@kodsinif/shared';
+} from '@safecodeshare/shared';
+import type { TreeCourse, TreeResponse } from '@safecodeshare/shared';
 import type { DB } from '../db';
 import { requireAuth } from '../auth/middleware';
 import { sendError } from '../util/errors';

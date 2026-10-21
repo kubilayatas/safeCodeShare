@@ -1,4 +1,4 @@
-// Yedekleme: `DATA_DIR/backups/kodsinif-YYYY-MM-DD.db` oluşturur, son 14 dosyayı tutar.
+// Yedekleme: `DATA_DIR/backups/safecodeshare-YYYY-MM-DD.db` oluşturur, son 14 dosyayı tutar.
 // Ayrıca günlük 03:00'te otomatik çalışacak job'u sağlar.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,7 +26,7 @@ export async function runBackup(db: DB, cfg: AppConfig): Promise<BackupResult> {
     const dir = backupsDir(cfg.DATA_DIR);
     fs.mkdirSync(dir, { recursive: true });
 
-    const target = path.join(dir, `kodsinif-${todayStamp()}.db`);
+    const target = path.join(dir, `safecodeshare-${todayStamp()}.db`);
     if (fs.existsSync(target)) {
       try {
         fs.unlinkSync(target);
@@ -54,7 +54,7 @@ function pruneOld(dir: string): void {
   try {
     const entries = fs
       .readdirSync(dir)
-      .filter((f) => /^kodsinif-\d{4}-\d{2}-\d{2}\.db$/.test(f))
+      .filter((f) => /^(safecodeshare|kodsinif)-\d{4}-\d{2}-\d{2}\.db$/.test(f))
       .map((f) => ({ name: f, full: path.join(dir, f), mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
       .sort((a, b) => b.mtime - a.mtime);
     for (const e of entries.slice(KEEP)) {
@@ -76,7 +76,7 @@ export function startBackupJob(db: DB, cfg: AppConfig): NodeJS.Timeout {
       const now = new Date();
       if (now.getHours() < RUN_HOUR) return;
       const dir = backupsDir(cfg.DATA_DIR);
-      const target = path.join(dir, `kodsinif-${todayStamp()}.db`);
+      const target = path.join(dir, `safecodeshare-${todayStamp()}.db`);
       if (fs.existsSync(target)) return;
       void runBackup(db, cfg);
     } catch (err) {

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { CreateTopicSchema, UpdateTopicSchema } from '@kodsinif/shared';
+import { CreateTopicSchema, UpdateTopicSchema } from '@safecodeshare/shared';
 import type { DB } from '../db';
 import { requireAuth } from '../auth/middleware';
 import { sendError } from '../util/errors';

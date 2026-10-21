@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { PublicUser } from '@kodsinif/shared';
+import type { PublicUser } from '@safecodeshare/shared';
 import { apiFetch, ApiError } from '../api';
 import { useToast } from '../components/Toast';
 

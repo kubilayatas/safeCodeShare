@@ -1,6 +1,6 @@
 // Veritabanı satır tipleri ve ortak dönüşümler.
 // Bu dosya; courses.ts, topics.ts, pads.ts ve (FAZ 6) public.ts tarafından paylaşılır.
-import type { PadSummary } from '@kodsinif/shared';
+import type { PadSummary } from '@safecodeshare/shared';
 
 export type UserRow = {
   id: string;

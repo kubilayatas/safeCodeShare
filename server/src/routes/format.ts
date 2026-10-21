@@ -2,7 +2,7 @@
 // Erişim: oturum sahibi VEYA X-Edit-Token header'ında geçerli ve aktif edit token.
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { FormatSchema } from '@kodsinif/shared';
+import { FormatSchema } from '@safecodeshare/shared';
 import type { AppConfig } from '../config';
 import type { DB } from '../db';
 import { format, FormatError } from '../format';

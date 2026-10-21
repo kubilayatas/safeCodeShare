@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import type { PublicCourseInfo } from '@kodsinif/shared';
-import { languageLabel } from '@kodsinif/shared';
+import type { PublicCourseInfo } from '@safecodeshare/shared';
+import { languageLabel } from '@safecodeshare/shared';
 import { apiFetch, ApiError } from '../api';
 import AdBanner from '../components/AdBanner';
 

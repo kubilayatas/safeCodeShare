@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { PadFull } from '@kodsinif/shared';
-import { languageLabel } from '@kodsinif/shared';
+import type { PadFull } from '@safecodeshare/shared';
+import { languageLabel } from '@safecodeshare/shared';
 import { apiFetch, ApiError } from '../api';
 import { useToast } from './Toast';
 import QrCode from './QrCode';

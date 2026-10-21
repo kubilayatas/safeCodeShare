@@ -4,7 +4,7 @@ import type {
   PadSummary,
   PublicUser,
   TreeResponse
-} from '@kodsinif/shared';
+} from '@safecodeshare/shared';
 import { apiFetch, ApiError } from '../api';
 import { useToast } from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -471,7 +471,7 @@ export default function Dashboard({ user, onLogout }: Props): JSX.Element {
     <div className="dash">
       <aside className="dash-side">
         <div className="dash-side-head">
-          <div className="brand">KodSınıf</div>
+          <div className="brand">SafeCodeShare</div>
           <div className="muted" style={{ fontSize: 12 }}>{user.name}</div>
         </div>
 

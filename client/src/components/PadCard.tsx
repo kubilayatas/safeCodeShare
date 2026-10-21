@@ -1,5 +1,5 @@
-import type { PadSummary } from '@kodsinif/shared';
-import { languageLabel } from '@kodsinif/shared';
+import type { PadSummary } from '@safecodeshare/shared';
+import { languageLabel } from '@safecodeshare/shared';
 
 type Props = {
   pad: PadSummary;

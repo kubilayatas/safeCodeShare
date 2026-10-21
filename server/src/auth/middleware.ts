@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { AppConfig } from '../config';
 import type { DB } from '../db';
-import type { PublicUser, Role } from '@kodsinif/shared';
+import type { PublicUser, Role } from '@safecodeshare/shared';
 import { findSession, SESSION_COOKIE } from './sessions';
 import { sendError } from '../util/errors';
 

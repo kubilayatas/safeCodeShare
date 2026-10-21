@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { LANGUAGES } from '@kodsinif/shared';
+import { LANGUAGES } from '@safecodeshare/shared';
 
 type Props = {
   value: string;

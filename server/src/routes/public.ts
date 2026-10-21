@@ -1,8 +1,8 @@
 // Hesapsız erişim uçları + korumalı SSE akışı.
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { UnlockSchema, languageExtension } from '@kodsinif/shared';
-import type { PublicCourseInfo, PublicEditInfo, PublicViewInfo } from '@kodsinif/shared';
+import { UnlockSchema, languageExtension } from '@safecodeshare/shared';
+import type { PublicCourseInfo, PublicEditInfo, PublicViewInfo } from '@safecodeshare/shared';
 import type { AppConfig } from '../config';
 import type { DB } from '../db';
 import { resolveAccess } from '../access/resolveAccess';

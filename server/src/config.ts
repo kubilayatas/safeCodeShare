@@ -4,8 +4,9 @@ import { z } from 'zod';
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().min(0).max(65535).default(3000),
-  PUBLIC_URL: z.string().url().default('http://localhost:5173'),
-  APP_NAME: z.string().min(1).max(120).default('KodSınıf'),
+  // Render'da ayarlanmazsa Render'ın verdiği adres (https://xxx.onrender.com) kullanılır.
+  PUBLIC_URL: z.string().url().default(process.env.RENDER_EXTERNAL_URL || 'http://localhost:5173'),
+  APP_NAME: z.string().min(1).max(120).default('SafeCodeShare'),
   DATA_DIR: z.string().min(1).default('./data'),
   COOKIE_SECRET: z.string().min(32, 'COOKIE_SECRET en az 32 karakter olmalı'),
   SESSION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
