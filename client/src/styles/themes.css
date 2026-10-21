@@ -11,9 +11,12 @@
   --ed-gutter-fg: #90908a;
   --ed-gutter-bg: #272822;
   --ed-cursor: #f8f8f0;
+  /* AI/OCR yemleri: yorumlardan bile soluk, ama OCR'ın yakalayacağı kadar belirgin */
+  --ed-decoy-1: #45463d;
+  --ed-decoy-2: #55564b;
 }
 
-.theme-monokai .tk-kw { color: #f92672; }
+.theme-monokai .tk-kw { color: #fb4d8a; }
 .theme-monokai .tk-class { color: #66d9ef; }
 .theme-monokai .tk-fn { color: #a6e22e; }
 .theme-monokai .tk-fn.tk-def { color: #a6e22e; text-decoration: underline; text-underline-offset: 2px; }
@@ -21,13 +24,13 @@
 .theme-monokai .tk-str { color: #e6db74; }
 .theme-monokai .tk-num { color: #ae81ff; }
 .theme-monokai .tk-esc { color: #ae81ff; }
-.theme-monokai .tk-com { color: #75715e; font-style: italic; }
+.theme-monokai .tk-com { color: #9b9680; font-style: italic; } /* özgün #75715e okunmuyordu (2.9:1) */
 .theme-monokai .tk-self { color: #fd971f; font-style: italic; }
 .theme-monokai .tk-meta { color: #fd971f; }
 .theme-monokai .tk-prop { color: #f8f8f2; }
-.theme-monokai .tk-op { color: #f92672; }
+.theme-monokai .tk-op { color: #fb4d8a; }
 .theme-monokai .tk-punc { color: #f8f8f2; }
-.theme-monokai .tk-tag { color: #f92672; }
+.theme-monokai .tk-tag { color: #fb4d8a; }
 .theme-monokai .tk-attr { color: #a6e22e; }
 .theme-monokai .tk-heading { color: #a6e22e; font-weight: 700; }
 .theme-monokai .tk-link { color: #66d9ef; text-decoration: underline; }
@@ -39,9 +42,11 @@
   --ed-fg: #000000;
   --ed-selection: #c0c0c0;
   --ed-active-line: #e8e8ff;
-  --ed-gutter-fg: #808080;
+  --ed-gutter-fg: #575757;
   --ed-gutter-bg: #e4e4e4;
   --ed-cursor: #000000;
+  --ed-decoy-1: #e0e0e0;
+  --ed-decoy-2: #d0d0d0;
 }
 
 .theme-notepad .tk-kw { color: #0000ff; font-weight: 700; }
@@ -49,9 +54,9 @@
 .theme-notepad .tk-fn { color: #795e26; font-weight: 700; }
 .theme-notepad .tk-fn.tk-def { color: #795e26; font-weight: 700; text-decoration: underline; }
 .theme-notepad .tk-var-def { color: #000000; }
-.theme-notepad .tk-str { color: #808080; }
-.theme-notepad .tk-num { color: #ff8000; }
-.theme-notepad .tk-esc { color: #ff8000; }
+.theme-notepad .tk-str { color: #6b6b6b; }
+.theme-notepad .tk-num { color: #b35600; }
+.theme-notepad .tk-esc { color: #b35600; }
 .theme-notepad .tk-com { color: #008000; }
 .theme-notepad .tk-self { color: #000080; font-style: italic; }
 .theme-notepad .tk-meta { color: #804000; }
@@ -59,7 +64,7 @@
 .theme-notepad .tk-op { color: #000080; font-weight: 700; }
 .theme-notepad .tk-punc { color: #000000; }
 .theme-notepad .tk-tag { color: #0000ff; }
-.theme-notepad .tk-attr { color: #ff0000; }
+.theme-notepad .tk-attr { color: #c40000; }
 .theme-notepad .tk-heading { color: #0000ff; font-weight: 700; }
 .theme-notepad .tk-link { color: #0000ff; text-decoration: underline; }
 .theme-notepad .tk-invalid { background: #ff0000; color: #ffffff; }
@@ -70,27 +75,29 @@
   --ed-fg: #abb2bf;
   --ed-selection: #3e4451;
   --ed-active-line: #2c313a;
-  --ed-gutter-fg: #5c6370;
+  --ed-gutter-fg: #8f96a2;
   --ed-gutter-bg: #282c34;
   --ed-cursor: #528bff;
+  --ed-decoy-1: #444a55;
+  --ed-decoy-2: #4b515d;
 }
 
 .theme-onedark .tk-kw { color: #c678dd; }
 .theme-onedark .tk-class { color: #e5c07b; }
 .theme-onedark .tk-fn { color: #61afef; }
 .theme-onedark .tk-fn.tk-def { color: #61afef; text-decoration: underline; text-underline-offset: 2px; }
-.theme-onedark .tk-var-def { color: #e06c75; }
+.theme-onedark .tk-var-def { color: #e57882; }
 .theme-onedark .tk-str { color: #98c379; }
 .theme-onedark .tk-num { color: #d19a66; }
 .theme-onedark .tk-esc { color: #56b6c2; }
-.theme-onedark .tk-com { color: #5c6370; font-style: italic; }
-.theme-onedark .tk-self { color: #e06c75; font-style: italic; }
+.theme-onedark .tk-com { color: #8f96a2; font-style: italic; } /* özgün #5c6370 okunmuyordu */
+.theme-onedark .tk-self { color: #e57882; font-style: italic; }
 .theme-onedark .tk-meta { color: #d19a66; }
-.theme-onedark .tk-prop { color: #e06c75; }
+.theme-onedark .tk-prop { color: #e57882; }
 .theme-onedark .tk-op { color: #56b6c2; }
 .theme-onedark .tk-punc { color: #abb2bf; }
-.theme-onedark .tk-tag { color: #e06c75; }
+.theme-onedark .tk-tag { color: #e57882; }
 .theme-onedark .tk-attr { color: #d19a66; }
-.theme-onedark .tk-heading { color: #e06c75; font-weight: 700; }
+.theme-onedark .tk-heading { color: #e57882; font-weight: 700; }
 .theme-onedark .tk-link { color: #61afef; text-decoration: underline; }
 .theme-onedark .tk-invalid { background: #e06c75; color: #282c34; }

@@ -9,6 +9,13 @@ export type UserRow = {
   password_hash: string;
   role: 'admin' | 'teacher';
   created_at: number;
+  plan: string;
+  plan_expires_at: number | null;
+  status: string;
+  limits_override: string | null;
+  admin_note: string;
+  last_login_at: number | null;
+  signup_source: string;
 };
 
 export type CourseRow = {
@@ -54,6 +61,7 @@ export type PadRow = {
   content_text: string;
   line_count: number;
   copy_protect: number;
+  ocr_protect: number;
   created_at: number;
   updated_at: number;
 };
@@ -75,6 +83,7 @@ export function padSummary(row: PadRow): PadSummary {
     expiresAt: row.expires_at,
     hasPassword: !!row.password_hash,
     copyProtect: !!row.copy_protect,
+    ocrProtect: row.ocr_protect ?? 0,
     sortOrder: row.sort_order
   };
 }

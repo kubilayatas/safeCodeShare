@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { decorateLine, decoyWidthFor } from '../editor/ocrDecoys';
 
 // EK §F: Koruma açık view token için CodeMirror KULLANMAYAN özel görüntüleyici.
 // SSE üzerinden snapshot + patch alır, satır satır <div> render eder,
@@ -55,6 +56,9 @@ export type ProtectedTeacherCursor = {
 
 type Props = {
   viewToken: string;
+  /** AI/OCR koruması: 0 kapalı, 1 hafif, 2 güçlü */
+  ocrLevel?: number;
+  language?: string;
   fontSize: number;
   lineWrapping: boolean;
   followEnabled: boolean;
@@ -76,6 +80,8 @@ function lineHeightFor(fontSize: number): number {
 
 export default function ProtectedCodeView({
   viewToken,
+  ocrLevel = 0,
+  language = 'plaintext',
   fontSize,
   lineWrapping,
   followEnabled,
@@ -290,12 +296,23 @@ export default function ProtectedCodeView({
     ? Math.min(lines.length, Math.ceil((scrollTop + viewportHeight) / LINE_HEIGHT) + 5)
     : lines.length;
 
-  const visible = useMemo(() => lines.slice(startIdx, endIdx), [lines, startIdx, endIdx]);
+  // AI/OCR yemleri: tüm belge için ortak genişlik, satır başına deterministik yem.
+  const decoyWidth = useMemo(
+    () => decoyWidthFor(lines.map((l) => l.reduce((n, s) => n + s[0].replace(/\u200B/g, '').length, 0))),
+    [lines]
+  );
+  const visible = useMemo(() => {
+    const slice = lines.slice(startIdx, endIdx);
+    if (ocrLevel <= 0) return slice;
+    return slice.map((l, i) =>
+      decorateLine(l, startIdx + i, { level: ocrLevel, language, seed: viewToken, width: decoyWidth })
+    );
+  }, [lines, startIdx, endIdx, ocrLevel, language, viewToken, decoyWidth]);
   const cursorLine = cursor?.line ?? null;
 
   return (
     <div
-      className={`protected-view theme-body`}
+      className={`protected-view ${ocrLevel >= 2 ? 'ocr-strong' : ''}`}
       ref={containerRef}
       style={{ fontSize: `${fontSize}px`, lineHeight: `${LINE_HEIGHT}px` }}
       aria-label="Korunan kod görünümü"

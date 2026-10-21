@@ -2,7 +2,17 @@
 
 Bu rehber, servisi Render panelinden elle oluşturduğunuzu varsayar. Ayarlarınızı aşağıdaki listeyle tek tek karşılaştırın.
 
-## Önce bilmeniz gereken: Ücretsiz planda veriler kalıcı değil
+## Siteyi herkese açacaksanız: ücretsiz plan uygun değil
+
+Herkese açık kayıtta kullanıcılar hesap açar, ders hazırlar, belki ücret öder. Ücretsiz planda bunların **hepsi** sunucu her uyuduğunda silinir: kullanıcı ertesi gün giriş yapamaz, çünkü hesabı artık yoktur. Herkese açmadan önce:
+
+1. Servisi **Starter** plana yükseltin ($7/ay).
+2. **Disks** bölümünden `/data` yoluna 1 GB disk ekleyin ($0.25/ay).
+3. Yönetim paneli → Genel bakış → **Yedeği indir** ile düzenli yedek alın.
+
+Disk ekledikten sonra kodda hiçbir değişiklik gerekmez; uygulama verilerini zaten `/data` içine yazar. O güne kadar kayıtları kapalı tutmak için: Yönetim → Site ayarları → "Herkes hesap oluşturabilsin" kutusunu kaldırın.
+
+## Ücretsiz planda veriler kalıcı değil
 
 - 15 dakika boyunca sunucuya istek gelmezse Render sunucuyu uyutur. Tekrar açılması yaklaşık 1 dakika sürer.
 - Sunucu **her uyuduğunda, yeniden başladığında ve her deploy'da** tüm dersler, kodlar, sürümler ve sonradan eklenen öğretmen hesapları silinir.
@@ -10,7 +20,7 @@ Bu rehber, servisi Render panelinden elle oluşturduğunuzu varsayar. Ayarların
 - Sayfa açık ve ekranda görünürken uygulama her 4 dakikada bir küçük bir istek gönderir. Böylece ders sırasında, sizin veya bir öğrencinin sekmesi açıkken sunucu uyumaz.
 - Ders bitince saklamak istediğiniz kodları panelden indirin (ders menüsü → **Zip indir**).
 - Her ay 750 ücretsiz saat hakkınız var. Tek bir servis bütün ay açık kalsa bile bu sınırın altında kalır.
-- Ücretsiz planda işlemci gücü düşük (0.1 CPU). Özellikle "✨ Düzenle" (biçimlendirme) ilk kullanımda birkaç saniye sürebilir.
+- Ücretsiz planda işlemci gücü düşük (0.1 CPU). Özellikle "✨ Biçimlendir" ilk kullanımda birkaç saniye sürebilir.
 
 Veriler kalıcı olsun isterseniz servisi **Starter** plana ($7/ay) yükseltip `/data` yoluna 1 GB disk ($0.25/ay) bağlamanız yeterli. Kodda başka bir değişiklik gerekmez.
 
@@ -45,6 +55,7 @@ Bu klasörü bir GitHub deposuna gönderin. `.gitignore` dosyası `node_modules`
 | `APP_NAME` | `SafeCodeShare` | İsteğe bağlı |
 | `DATA_DIR` | `/data` | İsteğe bağlı (Dockerfile'da zaten var) |
 | `VITE_ADSENSE_CLIENT_ID` | `ca-pub-...` | İsteğe bağlı. Boşsa reklam alanı hiç görünmez. |
+| `REGISTER_RATE_MAX` | `5` | İsteğe bağlı. Aynı IP'den saatte en fazla kaç kayıt yapılabileceği. |
 
 **Eklemeyin:**
 - `PORT`: Render kendisi verir (10000) ve uygulama onu kullanır. Eklediyseniz silmeniz en temizi.

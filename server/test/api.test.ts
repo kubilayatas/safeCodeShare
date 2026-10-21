@@ -24,38 +24,17 @@ process.env.LOGIN_RATE_MAX = '1000';
 process.env.UNLOCK_RATE_MAX = '1000';
 process.env.FORMAT_RATE_MAX = '1000';
 
-// Uygulamayı yeniden kullanılabilir bir fabrika haline getirmek için index.ts'i import etmek
-// yerine, ihtiyaç duyduğumuz parçaları burada minimal bir Express örneğiyle kuruyoruz.
-// Böylece testler gerçek index.ts'in side-effect'lerine bağımlı olmaz.
-
-import express from 'express';
-import cookieParser from 'cookie-parser';
+// Gerçek sunucuyla AYNI uygulama kurulumu (src/app.ts) kullanılır.
 import { loadConfig } from '../src/config';
 import { openDatabase } from '../src/db';
 import { hashPassword } from '../src/auth/passwords';
-import { loadUserFromSession } from '../src/auth/middleware';
-import { authRouter } from '../src/routes/auth';
-import { coursesRouter } from '../src/routes/courses';
-import { topicsRouter } from '../src/routes/topics';
-import { padsRouter } from '../src/routes/pads';
-import { errorHandler } from '../src/util/errors';
 import { randomId } from '../src/util/tokens';
+import { createApp } from '../src/app';
 
 function buildApp(): { app: Express; db: ReturnType<typeof openDatabase> } {
   const cfg = loadConfig();
   const db = openDatabase(cfg.DATA_DIR);
-
-  const app = express();
-  app.use(express.json({ limit: '2mb' }));
-  app.use(cookieParser());
-  app.use(loadUserFromSession(db, cfg));
-  app.use('/api/auth', authRouter(db, cfg));
-  app.use('/api', coursesRouter(db));
-  app.use('/api', topicsRouter(db));
-  app.use('/api', padsRouter(db));
-  app.use(errorHandler);
-
-  return { app, db };
+  return { app: createApp(db, cfg), db };
 }
 
 async function seedUsers(db: ReturnType<typeof openDatabase>): Promise<void> {
@@ -297,13 +276,20 @@ describe('SafeCodeShare API', () => {
     expect(order.slice(0, 3)).toEqual(ids);
   });
 
-  it('admin tüm dersleri ağaçta görür', async () => {
+  it('admin kendi ağacını görür, başka kullanıcıyı ownerId ile inceler', async () => {
     await teacherA.post('/api/courses').send({ title: 'Ders-A' });
     await teacherB.post('/api/courses').send({ title: 'Ders-B' });
 
-    const tree = await admin.get('/api/tree');
-    expect(tree.status).toBe(200);
-    expect(tree.body.courses).toHaveLength(2);
+    const own = await admin.get('/api/tree');
+    expect(own.status).toBe(200);
+    expect(own.body.courses).toHaveLength(0);
+
+    const ofA = await admin.get('/api/tree?ownerId=teacher-a');
+    expect(ofA.body.courses.map((c: { course: { title: string } }) => c.course.title)).toEqual(['Ders-A']);
+
+    // Öğretmen ownerId ile başkasının ağacını göremez
+    const sneaky = await teacherB.get('/api/tree?ownerId=teacher-a');
+    expect(sneaky.body.courses.map((c: { course: { title: string } }) => c.course.title)).toEqual(['Ders-B']);
   });
 
   it('ders view_token rotate edilebilir ve yeni token döner', async () => {

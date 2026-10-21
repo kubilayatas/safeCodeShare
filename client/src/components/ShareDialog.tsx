@@ -4,6 +4,8 @@ import { languageLabel } from '@safecodeshare/shared';
 import { apiFetch, ApiError } from '../api';
 import { useToast } from './Toast';
 import QrCode from './QrCode';
+import { can, useAccount } from '../account';
+import { LockChip } from './PlanBits';
 
 type Props = {
   open: boolean;
@@ -38,6 +40,7 @@ export default function ShareDialog({
   onPadChange
 }: Props): JSX.Element | null {
   const toast = useToast();
+  const { entitlements: ent } = useAccount();
   const [busy, setBusy] = useState(false);
   const [pwDraft, setPwDraft] = useState('');
   const [pwOpen, setPwOpen] = useState(false);
@@ -129,7 +132,7 @@ export default function ShareDialog({
     <div className="modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="modal-card share-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3 style={{ margin: 0 }}>🔗 Paylaş — {pad.title}</h3>
+          <h3>{pad.title} kodunu paylaş</h3>
           <button className="icon-btn" onClick={onClose} title="Kapat">✕</button>
         </div>
 
@@ -161,7 +164,12 @@ export default function ShareDialog({
 
           {/* Şifre */}
           <div className="share-subrow">
-            {pad.hasPassword ? (
+            {!pad.hasPassword && !can(ent, 'passwordShares') ? (
+              <>
+                <button className="btn btn-sm" disabled>Şifre koy</button>
+                <LockChip />
+              </>
+            ) : pad.hasPassword ? (
               <>
                 <span className="badge-inline">🔒 Şifreli</span>
                 <button className="btn btn-sm" disabled={busy} onClick={() => void patch({ password: null }, 'Şifre kaldırıldı')}>
@@ -193,17 +201,19 @@ export default function ShareDialog({
 
           {/* Görünürlük */}
           <div className="share-subrow">
-            <span className="muted">Şu tarihten itibaren görünür:</span>
+            <label className="muted" htmlFor="share-visible-from">Şu tarihten itibaren görünür:</label>
             <input
+              id="share-visible-from"
               className="input"
               type="datetime-local"
               value={toDatetimeLocalValue(pad.visibleFrom)}
-              disabled={busy}
+              disabled={busy || !can(ent, 'scheduledShares')}
               onChange={(e) => void patch({ visibleFrom: fromDatetimeLocalValue(e.target.value) })}
             />
             {pad.visibleFrom != null && (
               <button className="btn btn-sm" onClick={() => void patch({ visibleFrom: null })}>Kaldır</button>
             )}
+            {!can(ent, 'scheduledShares') && <LockChip />}
           </div>
         </section>
 
@@ -214,7 +224,7 @@ export default function ShareDialog({
               <input
                 type="checkbox"
                 checked={pad.editEnabled}
-                disabled={busy}
+                disabled={busy || (!pad.editEnabled && !can(ent, 'editLinks'))}
                 onChange={(e) => {
                   if (e.target.checked) {
                     if (!window.confirm('Bu linke sahip herkes kodu değiştirebilir. Emin misiniz?')) return;
@@ -224,6 +234,7 @@ export default function ShareDialog({
               />
               ✏️ Düzenleme linki {pad.editEnabled ? 'açık' : 'kapalı'}
             </label>
+            {!pad.editEnabled && !can(ent, 'editLinks') && <LockChip />}
           </div>
           {pad.editEnabled && (
             <>
@@ -243,17 +254,44 @@ export default function ShareDialog({
             <input
               type="checkbox"
               checked={pad.copyProtect}
-              disabled={busy}
+              disabled={busy || (!pad.copyProtect && !can(ent, 'copyProtect'))}
               onChange={(e) => void patch({ copyProtect: e.target.checked }, e.target.checked ? 'Kopyalama koruması açıldı' : 'Kopyalama koruması kapatıldı')}
             />
             🛡 Kopyalama koruması
           </label>
-          <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-            Öğrenciler kodu görür ama seçemez, kopyalayamaz, indiremez. Kopyalamayı
-            başarsalar bile yapıştırılan kod çalışmaz.
+          {!pad.copyProtect && !can(ent, 'copyProtect') && <LockChip />}
+          <p className="share-help">
+            Öğrenciler kodu görür ama seçemez, kopyalayamaz, indiremez. Kopyalamayı başarsalar bile
+            yapıştırılan kod çalışmaz. Düzenleme linkiyle girenler kodun temiz halini görür.
           </p>
-          <p className="muted" style={{ fontSize: 12 }}>
-            Düzenleme linkiyle girenler kodun temiz halini görür.
+
+          <div className="share-subrow" style={{ marginTop: 12 }}>
+            <span className="share-toggle" id="ocr-label">🤖 AI/OCR koruması</span>
+            <div className="segmented" role="group" aria-labelledby="ocr-label">
+              {([0, 1, 2] as const).map((lvl) => (
+                <button
+                  key={lvl}
+                  type="button"
+                  aria-pressed={pad.ocrProtect === lvl}
+                  disabled={busy || (lvl > 0 && (!pad.copyProtect || !can(ent, 'ocrProtect')))}
+                  onClick={() =>
+                    void patch(
+                      { ocrProtect: lvl },
+                      lvl === 0 ? 'AI/OCR koruması kapatıldı' : `AI/OCR koruması: ${lvl === 1 ? 'hafif' : 'güçlü'}`
+                    )
+                  }
+                >
+                  {lvl === 0 ? 'Kapalı' : lvl === 1 ? 'Hafif' : 'Güçlü'}
+                </button>
+              ))}
+            </div>
+            {!can(ent, 'ocrProtect') && <LockChip />}
+          </div>
+          <p className="share-help">
+            Kodun boşluklarına göze batmayan soluk sahte karakterler eklenir. Öğrenci ekranın fotoğrafını
+            çekip yapay zekâya veya metin tanıma uygulamasına okutursa bu karakterler de okunur ve kod
+            bozuk çıkar. Güçlü seviye kelime aralarına da karakter ekler; okunabilirliği biraz azaltır.
+            {!pad.copyProtect && ' Önce kopyalama korumasını aç.'}
           </p>
         </section>
 
@@ -276,8 +314,9 @@ export default function ShareDialog({
             <span className="muted">Son geçerlilik:</span>
             <select
               className="select"
+              style={{ width: 'auto' }}
               value={expiresPreset}
-              disabled={busy}
+              disabled={busy || (!can(ent, 'scheduledShares') && pad.expiresAt == null)}
               onChange={(e) => setExpiresPreset(e.target.value as ExpiresPreset)}
             >
               <option value="never">Süresiz</option>
@@ -286,6 +325,7 @@ export default function ShareDialog({
               <option value="1w">1 hafta</option>
               <option value="custom">Özel tarih…</option>
             </select>
+            {!can(ent, 'scheduledShares') && <LockChip />}
           </div>
           {expiresPreset === 'custom' && (
             <div className="share-subrow">
@@ -306,12 +346,17 @@ export default function ShareDialog({
         {/* Gömme kodu */}
         <section className="share-section">
           <div className="share-row">
-            <span className="muted">Gömme kodu (iframe):</span>
+            <span className="muted">Başka bir siteye gömme kodu (iframe):</span>
+            {!can(ent, 'embed') && <LockChip />}
           </div>
-          <div className="share-link">
-            <input className="input" readOnly value={embedCode} onFocus={(e) => e.target.select()} />
-            <button className="btn btn-sm" onClick={() => void copy(embedCode, 'Gömme kodu kopyalandı')}>Kopyala</button>
-          </div>
+          {can(ent, 'embed') ? (
+            <div className="share-link">
+              <input className="input" readOnly value={embedCode} onFocus={(e) => e.target.select()} />
+              <button className="btn btn-sm" onClick={() => void copy(embedCode, 'Gömme kodu kopyalandı')}>Kopyala</button>
+            </div>
+          ) : (
+            <p className="share-help">Planında gömme yok; kod başka sitelerin içinde açılmaz.</p>
+          )}
         </section>
 
         <div className="modal-actions">

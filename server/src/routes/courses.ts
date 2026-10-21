@@ -14,6 +14,7 @@ import { newCourseViewToken, randomId } from '../util/tokens';
 import { safeFilename, safeSlug } from '../util/filename';
 import { padSummary } from '../util/rows';
 import type { CourseRow, PadRow, TopicRow } from '../util/rows';
+import { getEntitlements, requireCapacity, requireFeature } from '../account/entitlements';
 
 export function coursesRouter(db: DB): Router {
   const router = Router();
@@ -22,23 +23,24 @@ export function coursesRouter(db: DB): Router {
   // ---- GET /tree ----
   router.get('/tree', (req, res) => {
     const user = req.user!;
-    const isAdmin = user.role === 'admin';
+    // Herkes (yönetici dahil) kendi içeriğini görür. Yönetici başka bir kullanıcının
+    // içeriğini incelemek için ?ownerId=... verebilir.
+    const requested = typeof req.query.ownerId === 'string' ? req.query.ownerId : '';
+    const ownerId = user.role === 'admin' && requested ? requested : user.id;
 
-    const courseRows = (
-      isAdmin
-        ? db.prepare('SELECT * FROM courses WHERE archived = 0 ORDER BY sort_order, created_at').all()
-        : db
-            .prepare('SELECT * FROM courses WHERE owner_id = ? AND archived = 0 ORDER BY sort_order, created_at')
-            .all(user.id)
-    ) as CourseRow[];
+    const courseRows = db
+      .prepare('SELECT * FROM courses WHERE owner_id = ? AND archived = 0 ORDER BY sort_order, created_at')
+      .all(ownerId) as CourseRow[];
 
-    const topicRows = db.prepare('SELECT * FROM topics ORDER BY sort_order, created_at').all() as TopicRow[];
+    const topicRows = db
+      .prepare(
+        'SELECT t.* FROM topics t JOIN courses c ON c.id = t.course_id WHERE c.owner_id = ? ORDER BY t.sort_order, t.created_at'
+      )
+      .all(ownerId) as TopicRow[];
 
-    const padRows = (
-      isAdmin
-        ? db.prepare('SELECT * FROM pads ORDER BY sort_order, created_at').all()
-        : db.prepare('SELECT * FROM pads WHERE owner_id = ? ORDER BY sort_order, created_at').all(user.id)
-    ) as PadRow[];
+    const padRows = db
+      .prepare('SELECT * FROM pads WHERE owner_id = ? ORDER BY sort_order, created_at')
+      .all(ownerId) as PadRow[];
 
     const courseIds = new Set(courseRows.map((c) => c.id));
 
@@ -109,6 +111,7 @@ export function coursesRouter(db: DB): Router {
       return;
     }
     const user = req.user!;
+    requireCapacity(getEntitlements(db, user.id), 'courses');
     const id = randomId(16);
     const now = Date.now();
     const viewToken = newCourseViewToken();
@@ -188,6 +191,7 @@ export function coursesRouter(db: DB): Router {
       values.push(d.sortOrder);
     }
     if (d.defaultCopyProtect !== undefined) {
+      if (d.defaultCopyProtect) requireFeature(getEntitlements(db, user.id), 'copyProtect');
       updates.push('default_copy_protect = ?');
       values.push(d.defaultCopyProtect ? 1 : 0);
     }
@@ -311,6 +315,7 @@ export function coursesRouter(db: DB): Router {
         sendError(res, 403, 'Bu derse erişim yetkiniz yok', 'FORBIDDEN');
         return;
       }
+      requireFeature(getEntitlements(db, user.id), 'exportZip');
 
       const topics = db
         .prepare('SELECT * FROM topics WHERE course_id = ? ORDER BY sort_order, created_at')

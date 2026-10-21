@@ -15,9 +15,13 @@ export async function apiFetch<T>(path: string, init: InitWithJson = {}): Promis
   const headers = new Headers(init.headers);
   let body: BodyInit | undefined;
 
+  const method = (init.method ?? 'GET').toUpperCase();
   if (init.body !== undefined) {
     if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
     body = JSON.stringify(init.body);
+  } else if (method !== 'GET' && method !== 'HEAD') {
+    // Gövdesiz değiştirme istekleri de JSON olarak işaretlenir.
+    headers.set('Content-Type', 'application/json');
   }
 
   const res = await fetch(path, {

@@ -191,11 +191,11 @@ export default function PadView(): JSX.Element {
 
   return (
     <div className={`pad-page theme-${settings.theme}`}>
-      <div className="viewer-banner">
+      <div className={`viewer-banner ${isProtected ? 'protected' : ''}`}>
         {isProtected ? (
-          <>🛡 Bu kod kopyalamaya kapalı — okuyup elle yazarak öğren</>
+          <>🛡 Bu kod kopyalamaya kapalı. Okuyarak ve elle yazarak öğren.</>
         ) : (
-          <>👁 Salt okunur — öğretmen yazdıkça kod canlı güncellenir</>
+          <>👁 Salt okunur. Öğretmen yazdıkça kod burada canlı güncellenir.</>
         )}
       </div>
 
@@ -244,6 +244,8 @@ export default function PadView(): JSX.Element {
         {isProtected ? (
           <ProtectedCodeView
             viewToken={viewToken!}
+            ocrLevel={info.ocrProtect}
+            language={resolvedLanguage}
             fontSize={settings.fontSize}
             lineWrapping={settings.lineWrapping}
             followEnabled={follow}

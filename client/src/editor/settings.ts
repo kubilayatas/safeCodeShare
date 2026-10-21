@@ -1,6 +1,7 @@
 // Kullanıcı ayarları localStorage'da `safecodeshare.settings` anahtarında saklanır.
 
 export type ThemeId = 'monokai' | 'notepad' | 'onedark';
+export type UiTheme = 'auto' | 'light' | 'dark';
 
 export type AppSettings = {
   theme: ThemeId;
@@ -9,6 +10,7 @@ export type AppSettings = {
   useTabs: boolean;
   lineWrapping: boolean;
   nickname: string;
+  uiTheme: UiTheme; // panel, profil, yönetim gibi sayfaların görünümü
 };
 
 const KEY = 'safecodeshare.settings';
@@ -20,7 +22,8 @@ const DEFAULTS: AppSettings = {
   tabSize: 2,
   useTabs: false,
   lineWrapping: false,
-  nickname: ''
+  nickname: '',
+  uiTheme: 'auto'
 };
 
 export function loadSettings(): AppSettings {
@@ -33,6 +36,7 @@ export function loadSettings(): AppSettings {
     if (!['monokai', 'notepad', 'onedark'].includes(merged.theme)) merged.theme = 'monokai';
     if (![2, 4, 8].includes(merged.tabSize)) merged.tabSize = 2;
     if (merged.fontSize < 12 || merged.fontSize > 32) merged.fontSize = 15;
+    if (!['auto', 'light', 'dark'].includes(merged.uiTheme)) merged.uiTheme = 'auto';
     return merged;
   } catch {
     return { ...DEFAULTS };
@@ -44,6 +48,17 @@ export function saveSettings(s: AppSettings): void {
     localStorage.setItem(KEY, JSON.stringify(s));
   } catch {
     /* sessizce yut */
+  }
+  applyUiTheme(s.uiTheme);
+}
+
+// <html data-theme="..."> ayarlar. 'auto' sistem tercihini izler (CSS'teki prefers-color-scheme).
+export function applyUiTheme(t: UiTheme): void {
+  try {
+    if (t === 'auto') delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = t;
+  } catch {
+    /* sunucu tarafı / test ortamı */
   }
 }
 

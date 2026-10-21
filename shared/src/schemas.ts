@@ -14,6 +14,15 @@ export const ChangePasswordSchema = z.object({
   next: PasswordSchema
 });
 
+export const RegisterSchema = z.object({
+  name: z.string().trim().min(2, 'Ad en az 2 karakter olmalı').max(120),
+  email: EmailSchema,
+  password: PasswordSchema,
+  acceptTerms: z.literal(true, { errorMap: () => ({ message: 'Kullanım koşullarını kabul etmelisiniz' }) }),
+  // Bot tuzağı: gerçek kullanıcılar bu alanı görmez ve boş bırakır.
+  website: z.string().max(0).optional()
+});
+
 export const UpdateProfileSchema = z.object({
   name: z.string().trim().min(1, 'Ad gerekli').max(120)
 });
@@ -23,13 +32,57 @@ export const CreateUserSchema = z.object({
   email: EmailSchema,
   name: z.string().trim().min(1).max(120),
   password: PasswordSchema,
-  role: z.enum(['admin', 'teacher'])
+  role: z.enum(['admin', 'teacher']),
+  plan: z.enum(['free', 'pro']).optional()
 });
+
+const LimitsOverrideSchema = z
+  .object({
+    maxCourses: z.number().int().min(0).max(100000).nullable().optional(),
+    maxPads: z.number().int().min(0).max(1000000).nullable().optional(),
+    copyProtect: z.boolean().optional(),
+    ocrProtect: z.boolean().optional(),
+    passwordShares: z.boolean().optional(),
+    scheduledShares: z.boolean().optional(),
+    editLinks: z.boolean().optional(),
+    versionHistory: z.boolean().optional(),
+    exportZip: z.boolean().optional(),
+    embed: z.boolean().optional(),
+    beautify: z.boolean().optional()
+  })
+  .strict();
+
+export const PlanLimitsSchema = z
+  .object({
+    maxCourses: z.number().int().min(0).max(100000).nullable(),
+    maxPads: z.number().int().min(0).max(1000000).nullable(),
+    copyProtect: z.boolean(),
+    ocrProtect: z.boolean(),
+    passwordShares: z.boolean(),
+    scheduledShares: z.boolean(),
+    editLinks: z.boolean(),
+    versionHistory: z.boolean(),
+    exportZip: z.boolean(),
+    embed: z.boolean(),
+    beautify: z.boolean()
+  })
+  .strict();
 
 export const UpdateUserSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   role: z.enum(['admin', 'teacher']).optional(),
-  password: PasswordSchema.optional()
+  password: PasswordSchema.optional(),
+  plan: z.enum(['free', 'pro']).optional(),
+  planExpiresAt: z.number().int().nullable().optional(),
+  status: z.enum(['active', 'suspended']).optional(),
+  limitsOverride: LimitsOverrideSchema.nullable().optional(),
+  adminNote: z.string().max(2000).optional()
+});
+
+export const SiteSettingsSchema = z.object({
+  registrationOpen: z.boolean().optional(),
+  upgradeInfo: z.string().max(2000).optional(),
+  plans: z.object({ free: PlanLimitsSchema, pro: PlanLimitsSchema }).optional()
 });
 
 // Ders / konu / pad
@@ -77,7 +130,8 @@ export const UpdatePadSchema = z.object({
   expiresAt: z.number().int().nullable().optional(),
   // password: yeni parola (string) veya null (kaldır) veya undefined (değiştirme)
   password: z.union([z.string().min(1).max(200), z.null()]).optional(),
-  copyProtect: z.boolean().optional()
+  copyProtect: z.boolean().optional(),
+  ocrProtect: z.number().int().min(0).max(2).optional()
 });
 
 export const RotateTokensSchema = z.object({

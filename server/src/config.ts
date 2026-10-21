@@ -17,7 +17,8 @@ const EnvSchema = z.object({
   // Test kolaylığı için
   LOGIN_RATE_MAX: z.coerce.number().int().positive().default(10),
   UNLOCK_RATE_MAX: z.coerce.number().int().positive().default(20),
-  FORMAT_RATE_MAX: z.coerce.number().int().positive().default(30)
+  FORMAT_RATE_MAX: z.coerce.number().int().positive().default(30),
+  REGISTER_RATE_MAX: z.coerce.number().int().positive().default(5)
 });
 
 export type AppConfig = z.infer<typeof EnvSchema> & {

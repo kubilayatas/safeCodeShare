@@ -185,7 +185,10 @@ export default function Editor({
 
       const view = new EditorView({
         state: EditorState.create({
-          doc: '',
+          // Yjs dokümanı bu ana kadar sunucudan gelmiş olabilir (dil paketi yüklenirken).
+          // yCollab mevcut içeriği editöre kendisi koymaz; boş başlatırsak editör ile ortak
+          // doküman ayrışır: kod görünmez ve yazılanlar yanlış konuma gider.
+          doc: ydoc.getText('code').toString(),
           extensions: [...extensions, listenerExt]
         }),
         parent: containerRef.current!

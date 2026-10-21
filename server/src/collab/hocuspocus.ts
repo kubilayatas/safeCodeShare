@@ -56,7 +56,7 @@ export function buildCollabServer(db: DB, cfg: AppConfig): HocuspocusHandle {
     async onAuthenticate(data: any) {
       const { token, documentName, requestHeaders, connectionConfig } = data;
       const padRow = db
-        .prepare('SELECT * FROM pads WHERE id = ?')
+        .prepare('SELECT p.*, u.status AS owner_status FROM pads p JOIN users u ON u.id = p.owner_id WHERE p.id = ?')
         .get(documentName) as PadAccessRow | undefined;
 
       const cookies = parseCookieHeader(requestHeaders?.cookie);

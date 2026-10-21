@@ -17,6 +17,7 @@ import { applyTextDiff } from '../collab/directEdit';
 import { notifyAccessChange } from '../collab/accessNotify';
 import type { PadRow } from '../util/rows';
 import { safeFilename } from '../util/filename';
+import { getEntitlements } from '../account/entitlements';
 
 type VersionRow = {
   id: number;
@@ -32,7 +33,18 @@ type VersionRow = {
 
 
 // İsteğe bağlı olarak oturum sahibini veya edit token'ı doğrulayarak pad'i yükler.
-function loadPadForAccess(req: Request, db: DB): PadRow | { error: number; msg: string } {
+function loadPadForAccess(req: Request, db: DB): PadRow | { error: number; msg: string; code?: string } {
+  const r = loadPadForAccessInner(req, db);
+  if ('error' in r) return r;
+  // Sürüm geçmişi plan özelliğidir: oturumla gelende kendi planı, edit linkiyle gelende pad sahibinin planı.
+  const ent = getEntitlements(db, req.user ? req.user.id : r.owner_id);
+  if (!ent.unlimited && !ent.limits.versionHistory) {
+    return { error: 403, msg: 'Sürüm geçmişi bu planda yok.', code: 'PLAN_LIMIT' };
+  }
+  return r;
+}
+
+function loadPadForAccessInner(req: Request, db: DB): PadRow | { error: number; msg: string; code?: string } {
   const padId = req.params.id;
 
   // Oturum sahibi yolu
@@ -82,7 +94,7 @@ export function versionsRouter(db: DB): Router {
   router.get('/pads/:id/versions', (req: Request, res: Response) => {
     const access = loadPadForAccess(req, db);
     if ('error' in access) {
-      sendError(res, access.error, access.msg, 'FORBIDDEN');
+      sendError(res, access.error, access.msg, access.code ?? 'FORBIDDEN');
       return;
     }
     const rows = db
@@ -97,7 +109,7 @@ export function versionsRouter(db: DB): Router {
   router.get('/pads/:id/versions/:vid', (req: Request, res: Response) => {
     const access = loadPadForAccess(req, db);
     if ('error' in access) {
-      sendError(res, access.error, access.msg, 'FORBIDDEN');
+      sendError(res, access.error, access.msg, access.code ?? 'FORBIDDEN');
       return;
     }
     const vid = Number(req.params.vid);
@@ -119,7 +131,7 @@ export function versionsRouter(db: DB): Router {
   router.post('/pads/:id/versions', (req: Request, res: Response) => {
     const access = loadPadForAccess(req, db);
     if ('error' in access) {
-      sendError(res, access.error, access.msg, 'FORBIDDEN');
+      sendError(res, access.error, access.msg, access.code ?? 'FORBIDDEN');
       return;
     }
     const parsed = CreateVersionSchema.safeParse(req.body ?? {});
@@ -154,7 +166,7 @@ export function versionsRouter(db: DB): Router {
     try {
       const access = loadPadForAccess(req, db);
       if ('error' in access) {
-        sendError(res, access.error, access.msg, 'FORBIDDEN');
+        sendError(res, access.error, access.msg, access.code ?? 'FORBIDDEN');
         return;
       }
       const vid = Number(req.params.vid);
@@ -220,7 +232,7 @@ export function versionsRouter(db: DB): Router {
   router.post('/pads/:id/versions/:vid/duplicate', (req: Request, res: Response) => {
     const access = loadPadForAccess(req, db);
     if ('error' in access) {
-      sendError(res, access.error, access.msg, 'FORBIDDEN');
+      sendError(res, access.error, access.msg, access.code ?? 'FORBIDDEN');
       return;
     }
     const vid = Number(req.params.vid);
@@ -282,7 +294,7 @@ export function versionsRouter(db: DB): Router {
   router.get('/pads/:id/versions/:vid/download', (req: Request, res: Response) => {
     const access = loadPadForAccess(req, db);
     if ('error' in access) {
-      sendError(res, access.error, access.msg, 'FORBIDDEN');
+      sendError(res, access.error, access.msg, access.code ?? 'FORBIDDEN');
       return;
     }
     const vid = Number(req.params.vid);

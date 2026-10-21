@@ -1,4 +1,5 @@
 // İstemci ve sunucu arasında paylaşılan API tipleri
+import type { Entitlements, PlanId, PlanLimits, Usage, UserStatus } from './plans';
 
 export type Role = 'admin' | 'teacher';
 
@@ -8,6 +9,31 @@ export type PublicUser = {
   name: string;
   role: Role;
   createdAt: number;
+  plan: PlanId;
+  planExpiresAt: number | null;
+  status: UserStatus;
+};
+
+export type MeResponse = { user: PublicUser; entitlements: Entitlements };
+
+// Yönetici panelindeki kullanıcı satırı
+export type AdminUser = PublicUser & {
+  effectivePlan: PlanId;
+  usage: Usage;
+  lastLoginAt: number | null;
+  signupSource: 'admin' | 'self';
+  adminNote: string;
+  limitsOverride: Partial<PlanLimits> | null;
+};
+
+export type AdminStats = {
+  users: number;
+  activeUsers30d: number;
+  proUsers: number;
+  suspendedUsers: number;
+  courses: number;
+  pads: number;
+  signups7d: number;
 };
 
 export type PadSummary = {
@@ -25,6 +51,7 @@ export type PadSummary = {
   expiresAt: number | null;
   hasPassword: boolean;
   copyProtect: boolean;
+  ocrProtect: number; // 0 kapalı, 1 hafif, 2 güçlü
   sortOrder: number;
 };
 
@@ -85,6 +112,7 @@ export type PublicViewInfo = {
   courseTitle?: string;
   requiresPassword: boolean;
   protected: boolean;
+  ocrProtect: number;
   locked: boolean;
   lineCount: number;
   updatedAt: number;

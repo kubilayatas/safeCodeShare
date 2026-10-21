@@ -45,6 +45,9 @@ export default function PadCard({
           {!pad.visibleInCourse && <span className="badge" title="Ders sayfasında gizli">🙈</span>}
           {notYetVisible && <span className="badge" title="Belirli saatten sonra görünür">⏰</span>}
           {pad.copyProtect && <span className="badge" title="Kopyalama koruması açık">🛡</span>}
+          {pad.copyProtect && pad.ocrProtect > 0 && (
+            <span className="badge" title={`AI/OCR koruması: ${pad.ocrProtect === 2 ? 'güçlü' : 'hafif'}`}>🤖</span>
+          )}
           {expired && <span className="badge" title="Süresi dolmuş">⌛</span>}
         </div>
       </div>

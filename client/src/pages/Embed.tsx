@@ -78,6 +78,8 @@ export default function Embed(): JSX.Element {
         {info.protected ? (
           <ProtectedCodeView
             viewToken={viewToken!}
+            ocrLevel={info.ocrProtect}
+            language={info.language}
             fontSize={settings.fontSize}
             lineWrapping={settings.lineWrapping}
             followEnabled

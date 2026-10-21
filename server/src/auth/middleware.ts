@@ -4,15 +4,7 @@ import type { DB } from '../db';
 import type { PublicUser, Role } from '@safecodeshare/shared';
 import { findSession, SESSION_COOKIE } from './sessions';
 import { sendError } from '../util/errors';
-
-type UserRow = {
-  id: string;
-  email: string;
-  name: string;
-  password_hash: string;
-  role: Role;
-  created_at: number;
-};
+import type { UserRow } from '../util/rows';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -28,8 +20,11 @@ export function toPublicUser(row: UserRow): PublicUser {
     id: row.id,
     email: row.email,
     name: row.name,
-    role: row.role,
-    createdAt: row.created_at
+    role: row.role as Role,
+    createdAt: row.created_at,
+    plan: row.plan === 'pro' ? 'pro' : 'free',
+    planExpiresAt: row.plan_expires_at ?? null,
+    status: row.status === 'suspended' ? 'suspended' : 'active'
   };
 }
 
@@ -41,6 +36,8 @@ export function loadUserFromSession(db: DB, _cfg: AppConfig) {
     if (!session) return next();
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(session.user_id) as UserRow | undefined;
     if (!user) return next();
+    // Askıya alınmış hesap: oturum geçersiz sayılır.
+    if (user.status === 'suspended') return next();
     req.user = toPublicUser(user);
     next();
   };

@@ -16,6 +16,7 @@ import { safeFilename } from '../util/filename';
 import { sendError } from '../util/errors';
 import { SESSION_COOKIE, findSession } from '../auth/sessions';
 import { verifyPassword } from '../auth/passwords';
+import { getSiteSettings } from '../account/entitlements';
 import {
   registerSubscriber,
   unregisterSubscriber,
@@ -48,7 +49,7 @@ type TopicRow = {
 function loadPadByViewToken(db: DB, viewToken: string): PadAccessRow | null {
   return (
     (db
-      .prepare('SELECT * FROM pads WHERE view_token = ?')
+      .prepare('SELECT p.*, u.status AS owner_status FROM pads p JOIN users u ON u.id = p.owner_id WHERE p.view_token = ?')
       .get(viewToken) as PadAccessRow | undefined) ?? null
   );
 }
@@ -56,7 +57,7 @@ function loadPadByViewToken(db: DB, viewToken: string): PadAccessRow | null {
 function loadPadByEditToken(db: DB, editToken: string): PadAccessRow | null {
   return (
     (db
-      .prepare('SELECT * FROM pads WHERE edit_token = ?')
+      .prepare('SELECT p.*, u.status AS owner_status FROM pads p JOIN users u ON u.id = p.owner_id WHERE p.edit_token = ?')
       .get(editToken) as PadAccessRow | undefined) ?? null
   );
 }
@@ -115,6 +116,12 @@ export function publicRouter(db: DB, cfg: AppConfig): Router {
     message: { error: 'Çok fazla deneme', code: 'RATE_LIMIT' }
   });
 
+  // ---- GET /api/public/site — kayıt ve plan sayfaları için herkese açık bilgi ----
+  router.get('/public/site', (_req, res) => {
+    const s = getSiteSettings(db);
+    res.json({ appName: cfg.APP_NAME, registrationOpen: s.registrationOpen, upgradeInfo: s.upgradeInfo, plans: s.plans });
+  });
+
   // ---- GET /api/public/view/:viewToken ----
   router.get('/public/view/:viewToken', (req, res) => {
     const row = loadPadByViewToken(db, req.params.viewToken);
@@ -165,6 +172,7 @@ export function publicRouter(db: DB, cfg: AppConfig): Router {
       courseTitle,
       requiresPassword: row.password_hash != null,
       protected: row.copy_protect === 1,
+      ocrProtect: row.copy_protect === 1 ? (row.ocr_protect ?? 0) : 0,
       locked: false,
       lineCount: info.line_count,
       updatedAt: info.updated_at
@@ -400,6 +408,13 @@ export function publicRouter(db: DB, cfg: AppConfig): Router {
     }
     if (course.page_enabled !== 1) {
       res.status(403).json({ error: 'Bu ders sayfası kapalı', code: 'PAGE_DISABLED' });
+      return;
+    }
+    const owner = db.prepare('SELECT status FROM users WHERE id = ?').get(course.owner_id) as
+      | { status: string }
+      | undefined;
+    if (!owner || owner.status === 'suspended') {
+      res.status(403).json({ error: 'Bu ders sayfası şu anda kullanılamıyor', code: 'PAGE_DISABLED' });
       return;
     }
 

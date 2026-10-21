@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type {
-  PadSummary,
-  PublicUser,
-  TreeResponse
-} from '@safecodeshare/shared';
+import type { PadSummary, TreeResponse } from '@safecodeshare/shared';
+import { Link } from 'react-router-dom';
+import { useAccount } from '../account';
+import { PlanBadge, UsageMeter } from '../components/PlanBits';
 import { apiFetch, ApiError } from '../api';
 import { useToast } from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -12,11 +11,6 @@ import CourseTree from '../components/CourseTree';
 import PadCard from '../components/PadCard';
 import LanguagePicker from '../components/LanguagePicker';
 import AdBanner from '../components/AdBanner';
-
-type Props = {
-  user: PublicUser;
-  onLogout: () => void;
-};
 
 type Selection =
   | { kind: 'none' }
@@ -39,9 +33,11 @@ type MoveModal = {
   topicId: string | null;
 };
 
-export default function Dashboard({ user, onLogout }: Props): JSX.Element {
+export default function Dashboard(): JSX.Element {
   const toast = useToast();
   const navigate = useNavigate();
+  const { user: maybeUser, entitlements: ent, setMe, refresh } = useAccount();
+  const user = maybeUser!;
 
   const [tree, setTree] = useState<TreeResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,6 +74,10 @@ export default function Dashboard({ user, onLogout }: Props): JSX.Element {
     try {
       const data = await apiFetch<TreeResponse>('/api/tree');
       setTree(data);
+      // İlk açılışta ilk dersi seç (yoksa derssiz kodlar görünür).
+      setSelection((sel) =>
+        sel.kind === 'none' && data.courses.length > 0 ? { kind: 'course', courseId: data.courses[0].course.id } : sel
+      );
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Ağaç yüklenemedi';
       toast.show(msg, 'error');
@@ -156,7 +156,7 @@ export default function Dashboard({ user, onLogout }: Props): JSX.Element {
       // yut
     }
     toast.show('Çıkış yapıldı', 'success');
-    onLogout();
+    setMe(null);
     navigate('/login', { replace: true });
   }
 
@@ -167,7 +167,7 @@ export default function Dashboard({ user, onLogout }: Props): JSX.Element {
     try {
       await apiFetch('/api/courses', { method: 'POST', body: { title: title.trim() } });
       toast.show('Ders oluşturuldu', 'success');
-      await loadTree();
+      await Promise.all([loadTree(), refresh()]);
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Ders oluşturulamadı';
       toast.show(msg, 'error');
@@ -207,7 +207,7 @@ export default function Dashboard({ user, onLogout }: Props): JSX.Element {
       });
       toast.show('Kod oluşturuldu', 'success');
       setCreateModal((m) => ({ ...m, open: false, title: '' }));
-      await loadTree();
+      await Promise.all([loadTree(), refresh()]);
       navigate(`/pad/${res.pad.id}`);
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Kod oluşturulamadı';
@@ -284,7 +284,7 @@ export default function Dashboard({ user, onLogout }: Props): JSX.Element {
     try {
       await apiFetch(path, { method: 'DELETE' });
       toast.show(successMsg, 'success');
-      await loadTree();
+      await Promise.all([loadTree(), refresh()]);
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Silme başarısız';
       toast.show(msg, 'error');
@@ -366,7 +366,15 @@ export default function Dashboard({ user, onLogout }: Props): JSX.Element {
   async function exportCourse(courseId: string): Promise<void> {
     try {
       const res = await fetch(`/api/courses/${courseId}/export.zip`, { credentials: 'include' });
-      if (!res.ok) throw new Error('İndirme başarısız');
+      if (!res.ok) {
+        let msg = 'Zip indirilemedi';
+        try {
+          msg = ((await res.json()) as { error?: string }).error ?? msg;
+        } catch {
+          /* gövde JSON değil */
+        }
+        throw new Error(msg);
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -400,7 +408,7 @@ export default function Dashboard({ user, onLogout }: Props): JSX.Element {
     try {
       await apiFetch(`/api/pads/${padId}/duplicate`, { method: 'POST' });
       toast.show('Kod çoğaltıldı', 'success');
-      await loadTree();
+      await Promise.all([loadTree(), refresh()]);
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Çoğaltma başarısız';
       toast.show(msg, 'error');
@@ -471,28 +479,38 @@ export default function Dashboard({ user, onLogout }: Props): JSX.Element {
     <div className="dash">
       <aside className="dash-side">
         <div className="dash-side-head">
-          <div className="brand">SafeCodeShare</div>
-          <div className="muted" style={{ fontSize: 12 }}>{user.name}</div>
+          <Link className="brand-mark" to="/dashboard">SafeCodeShare</Link>
+          <button className="btn btn-sm btn-ghost" onClick={logout}>Çıkış yap</button>
+        </div>
+
+        <div className="side-account">
+          <div className="side-account-top">
+            <Link to="/profile">{user.name}</Link>
+            {ent && <PlanBadge plan={ent.plan} admin={ent.unlimited} />}
+          </div>
+          {ent && !ent.unlimited && (
+            <>
+              <UsageMeter label="Dersler" used={ent.usage.courses} max={ent.limits.maxCourses} />
+              <UsageMeter label="Kodlar" used={ent.usage.pads} max={ent.limits.maxPads} />
+              {ent.plan !== 'pro' && <Link className="small" to="/plans">Pro'nun sunduklarını gör</Link>}
+            </>
+          )}
+          {user.role === 'admin' && <Link className="small" to="/admin">Yönetim paneli</Link>}
         </div>
 
         <div className="side-actions">
           <button className="btn btn-primary btn-sm" onClick={createCourse} disabled={creatingCourse}>
-            + Ders
+            Ders ekle
           </button>
-          <button className="btn btn-sm" onClick={openCreateModal}>+ Yeni kod</button>
-          <button className="btn btn-sm" onClick={() => navigate('/profile')}>Profil</button>
-          {user.role === 'admin' && (
-            <button className="btn btn-sm" onClick={() => navigate('/admin')}>Admin</button>
-          )}
-          <button className="btn btn-sm" onClick={logout}>Çıkış</button>
+          <button className="btn btn-sm" onClick={openCreateModal}>Kod ekle</button>
         </div>
 
         <input
           className="input"
-          placeholder="Ara: başlık veya içerik"
+          placeholder="Başlıkta veya kodda ara"
+          aria-label="Kodlarda ara"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ marginTop: 10, marginBottom: 10 }}
         />
 
         {tree && (
@@ -523,7 +541,12 @@ export default function Dashboard({ user, onLogout }: Props): JSX.Element {
         </div>
 
         {currentList.length === 0 ? (
-          <p className="muted">Bu bölümde kod yok. "+ Yeni kod" ile oluşturabilirsin.</p>
+          <div className="empty-state">
+            <p>{search.trim() ? 'Aramana uyan kod bulunamadı.' : 'Burada henüz kod yok.'}</p>
+            {!search.trim() && (
+              <button className="btn btn-primary" onClick={openCreateModal}>Kod ekle</button>
+            )}
+          </div>
         ) : (
           <div className="pad-grid">
             {currentList.map((p) => (
@@ -548,7 +571,7 @@ export default function Dashboard({ user, onLogout }: Props): JSX.Element {
       {createModal.open && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
-            <h3 style={{ marginTop: 0 }}>Yeni kod</h3>
+            <h3 style={{ marginTop: 0 }}>Kod ekle</h3>
             <div className="field">
               <label>Başlık</label>
               <input

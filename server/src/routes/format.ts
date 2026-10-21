@@ -6,9 +6,11 @@ import { FormatSchema } from '@safecodeshare/shared';
 import type { AppConfig } from '../config';
 import type { DB } from '../db';
 import { format, FormatError } from '../format';
+import { getEntitlements } from '../account/entitlements';
 
 type EditTokenRow = {
   id: string;
+  owner_id: string;
   edit_enabled: number;
   expires_at: number | null;
 };
@@ -26,14 +28,17 @@ export function formatRouter(db: DB, cfg: AppConfig): Router {
 
   router.post('/format', limiter, async (req, res) => {
     // Erişim kontrolü
-    if (!req.user) {
+    let planOwnerId: string;
+    if (req.user) {
+      planOwnerId = req.user.id;
+    } else {
       const token = req.header('x-edit-token');
       if (!token) {
         res.status(401).json({ error: 'Giriş yapmalı veya geçerli edit token sağlamalısınız', code: 'UNAUTHORIZED' });
         return;
       }
       const row = db
-        .prepare('SELECT id, edit_enabled, expires_at FROM pads WHERE edit_token = ?')
+        .prepare('SELECT id, owner_id, edit_enabled, expires_at FROM pads WHERE edit_token = ?')
         .get(token) as EditTokenRow | undefined;
       if (!row || row.edit_enabled !== 1) {
         res.status(403).json({ error: 'Bu edit token geçerli değil', code: 'FORBIDDEN' });
@@ -43,6 +48,12 @@ export function formatRouter(db: DB, cfg: AppConfig): Router {
         res.status(403).json({ error: 'Bu paylaşımın süresi doldu', code: 'EXPIRED' });
         return;
       }
+      planOwnerId = row.owner_id;
+    }
+    const ent = getEntitlements(db, planOwnerId);
+    if (!ent.unlimited && !ent.limits.beautify) {
+      res.status(403).json({ error: 'Kod biçimlendirme bu planda yok.', code: 'PLAN_LIMIT' });
+      return;
     }
 
     const parsed = FormatSchema.safeParse(req.body);

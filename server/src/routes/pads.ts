@@ -15,6 +15,7 @@ import { safeFilename } from '../util/filename';
 import { padSummary } from '../util/rows';
 import type { CourseRow, PadRow, TopicRow } from '../util/rows';
 import { notifyAccessChange } from '../collab/accessNotify';
+import { getEntitlements, requireCapacity, requireFeature } from '../account/entitlements';
 import { getCollabServer } from '../collab/singleton';
 import { updateMeta } from '../collab/directEdit';
 
@@ -61,6 +62,9 @@ export function padsRouter(db: DB): Router {
     }
     const user = req.user!;
     const d = parsed.data;
+    const ent = getEntitlements(db, user.id);
+    requireCapacity(ent, 'pads');
+    const canProtect = ent.unlimited || ent.limits.copyProtect;
 
     let courseId: string | null = d.courseId ?? null;
     let topicId: string | null = d.topicId ?? null;
@@ -90,8 +94,8 @@ export function padsRouter(db: DB): Router {
       }
     }
 
-    let copyProtect = 1;
-    if (courseId) {
+    let copyProtect = canProtect ? 1 : 0;
+    if (courseId && canProtect) {
       const row = db
         .prepare('SELECT default_copy_protect FROM courses WHERE id = ?')
         .get(courseId) as { default_copy_protect: number } | undefined;
@@ -208,6 +212,24 @@ export function padsRouter(db: DB): Router {
 
       const d = parsed.data;
 
+      // Plan kontrolleri: yalnızca bir özelliği AÇMAK/AYARLAMAK plan gerektirir.
+      // Kapatmak her zaman serbesttir.
+      const ent = getEntitlements(db, user.id);
+      if (d.editEnabled === true) requireFeature(ent, 'editLinks');
+      if (typeof d.password === 'string') requireFeature(ent, 'passwordShares');
+      if ((d.visibleFrom !== undefined && d.visibleFrom !== null) || (d.expiresAt !== undefined && d.expiresAt !== null)) {
+        requireFeature(ent, 'scheduledShares');
+      }
+      if (d.copyProtect === true) requireFeature(ent, 'copyProtect');
+      if (d.ocrProtect !== undefined && d.ocrProtect > 0) {
+        requireFeature(ent, 'ocrProtect');
+        const willProtect = d.copyProtect ?? row.copy_protect === 1;
+        if (!willProtect) {
+          sendError(res, 400, 'AI/OCR koruması için önce kopyalama korumasını açın', 'NEEDS_COPY_PROTECT');
+          return;
+        }
+      }
+
       let nextCourseId: string | null | undefined = d.courseId;
       const nextTopicId: string | null | undefined = d.topicId;
 
@@ -286,6 +308,12 @@ export function padsRouter(db: DB): Router {
         values.push(d.expiresAt);
         accessAffecting = true;
       }
+      if (d.ocrProtect !== undefined || d.copyProtect === false) {
+        // Kopyalama koruması kapanırsa OCR koruması da anlamını yitirir.
+        updates.push('ocr_protect = ?');
+        values.push(d.copyProtect === false ? 0 : (d.ocrProtect ?? row.ocr_protect));
+        accessAffecting = true;
+      }
       if (d.copyProtect !== undefined) {
         updates.push('copy_protect = ?');
         values.push(d.copyProtect ? 1 : 0);
@@ -361,6 +389,7 @@ export function padsRouter(db: DB): Router {
       sendError(res, 403, 'Bu koda erişim yetkiniz yok', 'FORBIDDEN');
       return;
     }
+    requireCapacity(getEntitlements(db, user.id), 'pads');
 
     const id = newPadId();
     const now = Date.now();

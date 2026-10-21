@@ -21,6 +21,7 @@ import ShortcutsHelp from '../components/ShortcutsHelp';
 import StatusBar from '../components/StatusBar';
 import Toolbar from '../components/Toolbar';
 import { applyFormatted } from '../editor/applyFormatted';
+import { can, useAccount } from '../account';
 import { createBroadcastController, type BroadcastController } from '../editor/follow';
 import {
   colorForName,
@@ -42,6 +43,9 @@ export default function PadOwner(): JSX.Element {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const toast = useToast();
+  const { entitlements: ent } = useAccount();
+  const canBeautify = can(ent, 'beautify');
+  const canHistory = can(ent, 'versionHistory');
 
   const [pad, setPad] = useState<PadFull | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,6 +127,10 @@ export default function PadOwner(): JSX.Element {
 
   const saveVersion = useCallback(async (): Promise<void> => {
     if (!pad) return;
+    if (!canHistory) {
+      toast.show('Sürüm kaydetme Pro planda', 'info');
+      return;
+    }
     const label = window.prompt('Sürüm etiketi (boş bırakılabilir):', '') ?? '';
     try {
       await apiFetch(`/api/pads/${pad.id}/versions`, {
@@ -134,7 +142,7 @@ export default function PadOwner(): JSX.Element {
       const msg = err instanceof ApiError ? err.message : 'Sürüm kaydedilemedi';
       toast.show(msg, 'error');
     }
-  }, [pad, toast]);
+  }, [pad, toast, canHistory]);
 
   const enterPresentation = useCallback(async (): Promise<void> => {
     if (presentation) return;
@@ -200,6 +208,10 @@ export default function PadOwner(): JSX.Element {
   const runBeautify = useCallback(async (): Promise<void> => {
     if (!ctx || !pad) return;
     if (beautifying) return;
+    if (!canBeautify) {
+      toast.show('Kod biçimlendirme planında yok', 'info');
+      return;
+    }
     setBeautifying(true);
     try {
       const res = await formatCode({
@@ -237,7 +249,7 @@ export default function PadOwner(): JSX.Element {
     } finally {
       setBeautifying(false);
     }
-  }, [ctx, pad, beautifying, settings.tabSize, settings.useTabs, toast]);
+  }, [ctx, pad, beautifying, canBeautify, settings.tabSize, settings.useTabs, toast]);
 
   async function saveTitle(): Promise<void> {
     if (!pad) return;
@@ -338,10 +350,10 @@ export default function PadOwner(): JSX.Element {
               <button
                 className="btn btn-sm"
                 onClick={() => void runBeautify()}
-                disabled={beautifying || !ctx}
-                title="Kodu biçimlendir (Ctrl+Alt+F)"
+                disabled={beautifying || !ctx || !canBeautify}
+                title={canBeautify ? 'Kodu biçimlendir (Ctrl+Alt+F)' : 'Planında kod biçimlendirme yok'}
               >
-                {beautifying ? '✨ …' : '✨ Düzenle'}
+                {beautifying ? '✨ …' : '✨ Biçimlendir'}
               </button>
             </>
           }
@@ -365,7 +377,8 @@ export default function PadOwner(): JSX.Element {
               <button
                 className="btn btn-sm"
                 onClick={() => navigate(`/pad/${pad.id}/history`)}
-                title="Sürüm geçmişi"
+                disabled={!canHistory}
+                title={canHistory ? 'Sürüm geçmişi' : 'Sürüm geçmişi Pro planda'}
               >
                 🕘 Geçmiş
               </button>

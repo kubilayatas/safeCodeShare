@@ -33,6 +33,9 @@ export type PadAccessRow = {
   expires_at: number | null;
   password_hash: string | null;
   copy_protect: number;
+  ocr_protect?: number;
+  // Pad sahibinin hesap durumu (sorguda users tablosundan JOIN ile gelir).
+  owner_status?: string;
 };
 
 // Sabit zamanlı string karşılaştırma — uzunluklar farklıysa false.
@@ -65,6 +68,11 @@ export function resolveAccess(pad: PadAccessRow | null | undefined, input: Resol
     if (u.role === 'admin' || u.id === pad.owner_id) {
       return { level: 'owner', channel: 'yjs' };
     }
+  }
+
+  // 2b. Sahibi askıya alınmış hesapların paylaşımları kapalıdır.
+  if (pad.owner_status === 'suspended') {
+    return { level: 'none', channel: null, reason: 'Bu paylaşım şu anda kullanılamıyor' };
   }
 
   // 3. Süre dolmuş mu?
