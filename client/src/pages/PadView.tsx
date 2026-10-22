@@ -23,6 +23,8 @@ import ShortcutsHelp from '../components/ShortcutsHelp';
 import StatusBar from '../components/StatusBar';
 import Toolbar from '../components/Toolbar';
 import AdBanner from '../components/AdBanner';
+import { useI18n } from '../i18n';
+import { useLangLabel } from '../i18n/LocalePicker';
 import {
   colorForName,
   ensureNickname,
@@ -44,11 +46,14 @@ type LoadError = {
   code: string;
   message: string;
   requiresPassword: boolean;
+  availableAt?: number;
 };
 
 export default function PadView(): JSX.Element {
   const { viewToken } = useParams<{ viewToken: string }>();
   const toast = useToast();
+  const { t, formatDateTime } = useI18n();
+  const langLabel = useLangLabel();
 
   const [info, setInfo] = useState<PublicViewInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,7 +63,7 @@ export default function PadView(): JSX.Element {
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const [pStatus, setPStatus] = useState<ProtectedConnectionStatus>('connecting');
   const [presence, setPresence] = useState<Presence>({ owners: 0, editors: 0, viewers: 0 });
-  const [settings, setSettings] = useState<AppSettings>(() => ensureNickname(loadSettings()));
+  const [settings, setSettings] = useState<AppSettings>(() => ensureNickname(loadSettings(), t('view.student')));
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [ctx, setCtx] = useState<EditorContext | null>(null);
@@ -84,10 +89,11 @@ export default function PadView(): JSX.Element {
           status: err.status,
           code: err.code,
           message: err.message,
-          requiresPassword: err.code === 'PASSWORD_REQUIRED'
+          requiresPassword: err.code === 'PASSWORD_REQUIRED',
+          availableAt: typeof err.data.availableAt === 'number' ? err.data.availableAt : undefined
         });
       } else {
-        setError({ status: 0, code: 'UNKNOWN', message: 'Yüklenemedi', requiresPassword: false });
+        setError({ status: 0, code: 'UNKNOWN', message: t('view.loadFailed'), requiresPassword: false });
       }
     } finally {
       setLoading(false);
@@ -103,7 +109,7 @@ export default function PadView(): JSX.Element {
   }, [settings]);
 
   const nickname = useMemo(
-    () => (settings.nickname.trim().length > 0 ? settings.nickname : 'İzleyici'),
+    () => (settings.nickname.trim().length > 0 ? settings.nickname : t('view.viewer')),
     [settings.nickname]
   );
   const color = useMemo(() => colorForName(nickname), [nickname]);
@@ -117,11 +123,11 @@ export default function PadView(): JSX.Element {
         method: 'POST',
         body: { password }
       });
-      toast.show('Şifre doğru', 'success');
+      toast.show(t('view.passwordOk'), 'success');
       setPassword('');
       await load();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Şifre hatalı';
+      const msg = err instanceof ApiError ? err.message : t('view.passwordWrong');
       toast.show(msg, 'error');
     } finally {
       setUnlocking(false);
@@ -132,9 +138,9 @@ export default function PadView(): JSX.Element {
     if (!ctx) return;
     try {
       await navigator.clipboard.writeText(ctx.getText());
-      toast.show('Kod kopyalandı', 'success');
+      toast.show(t('pad.codeCopied'), 'success');
     } catch {
-      toast.show('Kopyalanamadı', 'error');
+      toast.show(t('common.copyFailed'), 'error');
     }
   }
 
@@ -155,11 +161,12 @@ export default function PadView(): JSX.Element {
     return (
       <div className="public-gate">
         <form className="public-card" onSubmit={tryUnlock}>
-          <h2>🔒 Bu kod şifreli</h2>
-          <p className="muted">Devam etmek için şifreyi girin.</p>
+          <h2>{t('view.passwordTitle')}</h2>
+          <p className="muted">{t('view.passwordBody')}</p>
           <div className="field">
-            <label>Şifre</label>
+            <label htmlFor="view-password">{t('view.password')}</label>
             <input
+              id="view-password"
               className="input"
               type="password"
               autoFocus
@@ -169,7 +176,7 @@ export default function PadView(): JSX.Element {
             />
           </div>
           <button className="btn btn-primary" type="submit" disabled={unlocking}>
-            {unlocking ? 'Kontrol ediliyor…' : 'Aç'}
+            {t(unlocking ? 'view.checking' : 'view.unlock')}
           </button>
         </form>
       </div>
@@ -180,8 +187,12 @@ export default function PadView(): JSX.Element {
     return (
       <div className="public-gate">
         <div className="public-card">
-          <h2>Erişilemiyor</h2>
-          <p>{error?.message ?? 'Bu paylaşım mevcut değil.'}</p>
+          <h2>{t('view.unavailable')}</h2>
+          <p>
+            {error?.availableAt
+              ? t('view.availableAt', { date: formatDateTime(error.availableAt) })
+              : error?.message ?? t('view.notFound')}
+          </p>
         </div>
       </div>
     );
@@ -190,12 +201,12 @@ export default function PadView(): JSX.Element {
   const isProtected = info.protected;
 
   return (
-    <div className={`pad-page theme-${settings.theme}`}>
+    <div className={`pad-page theme-${settings.theme}`} data-print-msg={t('protected.printBlocked')}>
       <div className={`viewer-banner ${isProtected ? 'protected' : ''}`}>
         {isProtected ? (
-          <>🛡 Bu kod kopyalamaya kapalı. Okuyarak ve elle yazarak öğren.</>
+          <>{t('view.bannerProtected')}</>
         ) : (
-          <>👁 Salt okunur. Öğretmen yazdıkça kod burada canlı güncellenir.</>
+          <>{t('view.bannerReadOnly')}</>
         )}
       </div>
 
@@ -206,34 +217,36 @@ export default function PadView(): JSX.Element {
           <>
             {!isProtected && (
               <>
-                <button className="btn btn-sm" onClick={() => void copyAll()}>📋 Kopyala</button>
-                <button className="btn btn-sm" onClick={download}>⬇ İndir</button>
+                <button className="btn btn-sm" onClick={() => void copyAll()}>{t('view.copy')}</button>
+                <button className="btn btn-sm" onClick={download}>{t('view.download')}</button>
               </>
             )}
             <button
               className="btn btn-sm"
               onClick={() => setSettings((s) => ({ ...s, fontSize: Math.max(12, s.fontSize - 1) }))}
-              title="Yazıyı küçült"
+              title={t('view.smaller')}
+              aria-label={t('view.smaller')}
             >
               A−
             </button>
             <button
               className="btn btn-sm"
               onClick={() => setSettings((s) => ({ ...s, fontSize: Math.min(32, s.fontSize + 1) }))}
-              title="Yazıyı büyüt"
+              title={t('view.bigger')}
+              aria-label={t('view.bigger')}
             >
               A+
             </button>
-            <label className="btn btn-sm follow-toggle" title="Öğretmeni takip et">
+            <label className="btn btn-sm follow-toggle">
               <input
                 type="checkbox"
                 checked={follow}
                 onChange={(e) => setFollow(e.target.checked)}
               />{' '}
-              Öğretmeni takip et
+              {t('view.follow')}
             </label>
-            <button className="btn btn-sm" onClick={() => setShowHelp(true)} title="Kısayollar (F1)">⌨</button>
-            <button className="btn btn-sm" onClick={() => setShowSettings((v) => !v)}>⚙</button>
+            <button className="btn btn-sm" onClick={() => setShowHelp(true)} title={t('view.shortcuts')} aria-label={t('view.shortcuts')}>⌨</button>
+            <button className="btn btn-sm" onClick={() => setShowSettings((v) => !v)} title={t('pad.settings')} aria-label={t('pad.settings')}>⚙</button>
             <ConnectionDot status={isProtected ? (pStatus === 'connected' ? 'connected' : pStatus === 'connecting' ? 'connecting' : 'disconnected') : status} />
             <PresenceBar presence={presence} selfName={nickname} selfColor={color} />
           </>
@@ -292,10 +305,10 @@ export default function PadView(): JSX.Element {
       {!isProtected && <StatusBar language={info.language} cursor={cursor} dirty={false} />}
       {isProtected && (
         <div className="statusbar">
-          <span className="sb-item">Korunan görünüm</span>
-          <span className="sb-item">🧑‍🏫 {pCursor ? `Satır ${pCursor.line}` : 'öğretmen bekleniyor'}</span>
+          <span className="sb-item">{t('view.protectedView')}</span>
+          <span className="sb-item">{pCursor ? t('view.teacherAtLine', { line: pCursor.line }) : t('view.waitingTeacher')}</span>
           <span className="sb-spacer" />
-          <span className="sb-item">{resolvedLanguage}</span>
+          <span className="sb-item">{langLabel(resolvedLanguage)}</span>
         </div>
       )}
 

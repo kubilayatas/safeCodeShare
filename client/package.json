@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:i18n": "tsx scripts/check-locales.ts"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.18.3",

@@ -16,6 +16,7 @@ export type UserRow = {
   admin_note: string;
   last_login_at: number | null;
   signup_source: string;
+  locale: string | null;
 };
 
 export type CourseRow = {

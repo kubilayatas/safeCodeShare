@@ -23,7 +23,7 @@ window.setInterval(() => {
 }, KEEPALIVE_MS);
 
 const root = document.getElementById('root');
-if (!root) throw new Error('root elementi bulunamadı');
+if (!root) throw new Error('#root not found');
 
 ReactDOM.createRoot(root).render(
   <React.StrictMode>

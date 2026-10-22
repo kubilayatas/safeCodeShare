@@ -1,12 +1,14 @@
 // POST /api/format — dile özgü biçimlendirme.
 // Erişim: oturum sahibi VEYA X-Edit-Token header'ında geçerli ve aktif edit token.
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import rateLimit from 'express-rate-limit';
 import { FormatSchema } from '@safecodeshare/shared';
 import type { AppConfig } from '../config';
 import type { DB } from '../db';
 import { format, FormatError } from '../format';
 import { getEntitlements } from '../account/entitlements';
+import { sendError } from '../util/errors';
+import { tReq } from '../i18n';
 
 type EditTokenRow = {
   id: string;
@@ -23,7 +25,7 @@ export function formatRouter(db: DB, cfg: AppConfig): Router {
     limit: cfg.FORMAT_RATE_MAX,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
-    message: { error: 'Çok sık biçimlendirme isteği', code: 'RATE_LIMIT' }
+    message: (req: Request) => ({ error: tReq(req, 'Çok sık biçimlendirme isteği'), code: 'RATE_LIMIT' })
   });
 
   router.post('/format', limiter, async (req, res) => {
@@ -34,31 +36,31 @@ export function formatRouter(db: DB, cfg: AppConfig): Router {
     } else {
       const token = req.header('x-edit-token');
       if (!token) {
-        res.status(401).json({ error: 'Giriş yapmalı veya geçerli edit token sağlamalısınız', code: 'UNAUTHORIZED' });
+        sendError(res, 401, 'Giriş yapmalı veya geçerli edit token sağlamalısınız', 'UNAUTHORIZED');
         return;
       }
       const row = db
         .prepare('SELECT id, owner_id, edit_enabled, expires_at FROM pads WHERE edit_token = ?')
         .get(token) as EditTokenRow | undefined;
       if (!row || row.edit_enabled !== 1) {
-        res.status(403).json({ error: 'Bu edit token geçerli değil', code: 'FORBIDDEN' });
+        sendError(res, 403, 'Bu edit token geçerli değil', 'FORBIDDEN');
         return;
       }
       if (row.expires_at != null && row.expires_at < Date.now()) {
-        res.status(403).json({ error: 'Bu paylaşımın süresi doldu', code: 'EXPIRED' });
+        sendError(res, 403, 'Bu paylaşımın süresi doldu', 'EXPIRED');
         return;
       }
       planOwnerId = row.owner_id;
     }
     const ent = getEntitlements(db, planOwnerId);
     if (!ent.unlimited && !ent.limits.beautify) {
-      res.status(403).json({ error: 'Kod biçimlendirme bu planda yok.', code: 'PLAN_LIMIT' });
+      sendError(res, 403, 'Kod biçimlendirme bu planda yok.', 'PLAN_LIMIT');
       return;
     }
 
     const parsed = FormatSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Geçersiz biçimlendirme isteği', code: 'INVALID_INPUT' });
+      sendError(res, 400, 'Geçersiz biçimlendirme isteği', 'INVALID_INPUT');
       return;
     }
 
@@ -66,7 +68,7 @@ export function formatRouter(db: DB, cfg: AppConfig): Router {
 
     // 1 MB sınır
     if (Buffer.byteLength(code, 'utf8') > 1024 * 1024) {
-      res.status(413).json({ error: 'Kod 1 MB sınırını aşıyor', code: 'PAYLOAD_TOO_LARGE' });
+      sendError(res, 413, 'Kod 1 MB sınırını aşıyor', 'PAYLOAD_TOO_LARGE');
       return;
     }
 
@@ -78,14 +80,15 @@ export function formatRouter(db: DB, cfg: AppConfig): Router {
       res.json({ code: formatted });
     } catch (err) {
       if (err instanceof FormatError) {
+        // Bilinen mesajlar çevrilir; biçimlendiricinin kendi (İngilizce) hata metni olduğu gibi kalır.
         res.status(422).json({
-          error: err.message,
+          error: tReq(req, err.message),
           ...(err.line != null ? { line: err.line } : {}),
           ...(err.column != null ? { column: err.column } : {})
         });
         return;
       }
-      const msg = err instanceof Error ? err.message : 'Biçimlendirme başarısız';
+      const msg = err instanceof Error ? err.message : tReq(req, 'Biçimlendirme başarısız');
       res.status(422).json({ error: msg.slice(0, 300) });
     }
   });

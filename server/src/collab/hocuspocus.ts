@@ -83,11 +83,11 @@ export function buildCollabServer(db: DB, cfg: AppConfig): HocuspocusHandle {
       });
 
       if (access.level === 'none') {
-        throw new Error(access.reason ?? 'Bu dokümana erişim yetkiniz yok');
+        throw new Error('permission-denied');
       }
 
       if (access.level === 'view' && access.channel === 'protected') {
-        throw new Error('Bu kod kopyalamaya kapalı; canlı akış üzerinden izlenmeli');
+        throw new Error('copy-protected: use the protected stream');
       }
 
       if (access.level === 'view' && connectionConfig) {
@@ -155,7 +155,7 @@ export function buildCollabServer(db: DB, cfg: AppConfig): HocuspocusHandle {
             const info = cursorFromOffset(
               data.documentName,
               head,
-              user.name ?? 'Öğretmen',
+              user.name ?? '',
               user.color ?? '#F92672'
             );
             if (info) {

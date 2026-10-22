@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { decorateLine, decoyWidthFor } from '../editor/ocrDecoys';
+import { useI18n } from '../i18n';
 
 // EK §F: Koruma açık view token için CodeMirror KULLANMAYAN özel görüntüleyici.
 // SSE üzerinden snapshot + patch alır, satır satır <div> render eder,
@@ -92,6 +93,8 @@ export default function ProtectedCodeView({
   onTitleResolved,
   onReload
 }: Props): JSX.Element {
+  const { t } = useI18n();
+  const copyBlockedText = t('protected.copyBlocked');
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
@@ -168,7 +171,7 @@ export default function ProtectedCodeView({
           const c: ProtectedTeacherCursor = {
             line: msg.line,
             col: msg.col ?? 1,
-            name: msg.name ?? 'Öğretmen',
+            name: msg.name || t('view.teacher'),
             color: msg.color ?? '#F92672'
           };
           setCursor(c);
@@ -211,10 +214,7 @@ export default function ProtectedCodeView({
     const onCopy = (e: ClipboardEvent): void => {
       e.preventDefault();
       try {
-        e.clipboardData?.setData(
-          'text/plain',
-          'Bu kodu kopyalamak yerine elle yazmalısın ✍️'
-        );
+        e.clipboardData?.setData('text/plain', copyBlockedText);
       } catch {
         /* yut */
       }
@@ -247,7 +247,7 @@ export default function ProtectedCodeView({
       document.removeEventListener('selectstart', prevent, true);
       document.removeEventListener('keydown', onKeydown, true);
     };
-  }, []);
+  }, [copyBlockedText]);
 
   // --- Sanallaştırma boyut takibi ---
   useEffect(() => {
@@ -315,7 +315,8 @@ export default function ProtectedCodeView({
       className={`protected-view ${ocrLevel >= 2 ? 'ocr-strong' : ''}`}
       ref={containerRef}
       style={{ fontSize: `${fontSize}px`, lineHeight: `${LINE_HEIGHT}px` }}
-      aria-label="Korunan kod görünümü"
+      aria-label={t('protected.ariaLabel')}
+      dir="ltr"
     >
       <div className="protected-scroll" ref={scrollRef} onScroll={onScroll}>
         {virtualize ? (
@@ -363,7 +364,7 @@ export default function ProtectedCodeView({
             lastAppliedLineRef.current = null;
           }}
         >
-          ↩ Takibe dön
+          {t('protected.followResume')}
         </button>
       )}
     </div>

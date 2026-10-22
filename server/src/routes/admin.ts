@@ -20,28 +20,34 @@ import { runBackup } from '../jobs/backup';
 import type { AppConfig } from '../config';
 import { effectivePlan, getSiteSettings, parseOverride, saveSiteSettings } from '../account/entitlements';
 import { notifyAccessChange } from '../collab/accessNotify';
+import { latestSubscription, PRO_SQL, toBillingInfo } from '../billing/subscriptions';
+import { billingEnabled, cancelSubscription } from '../billing/lemonsqueezy';
 
-type UserWithUsage = UserRow & { course_count: number; pad_count: number };
+type UserWithUsage = UserRow & { course_count: number; pad_count: number; billing_until: number | null };
 
-function toAdminUser(r: UserWithUsage): AdminUser {
+function toAdminUser(db: DB, r: UserWithUsage): AdminUser {
+  const now = Date.now();
+  const sub = latestSubscription(db, r.id, now);
   return {
     ...toPublicUser(r),
-    effectivePlan: r.role === 'admin' ? 'pro' : effectivePlan(r),
+    effectivePlan: r.role === 'admin' ? 'pro' : effectivePlan(r, now, r.billing_until ?? 0),
     usage: { courses: r.course_count, pads: r.pad_count },
     lastLoginAt: r.last_login_at ?? null,
     signupSource: r.signup_source === 'self' ? 'self' : 'admin',
     adminNote: r.admin_note ?? '',
-    limitsOverride: parseOverride(r.limits_override)
+    limitsOverride: parseOverride(r.limits_override),
+    billing: sub ? { ...toBillingInfo(sub, now), subscriptionId: sub.id } : null
   };
 }
 
 const USER_COLUMNS = `u.*,
   (SELECT COUNT(*) FROM courses c WHERE c.owner_id = u.id) AS course_count,
-  (SELECT COUNT(*) FROM pads p WHERE p.owner_id = u.id) AS pad_count`;
+  (SELECT COUNT(*) FROM pads p WHERE p.owner_id = u.id) AS pad_count,
+  (SELECT MAX(s.access_until) FROM subscriptions s WHERE s.user_id = u.id) AS billing_until`;
 
 function loadAdminUser(db: DB, id: string): AdminUser | null {
   const r = db.prepare(`SELECT ${USER_COLUMNS} FROM users u WHERE u.id = ?`).get(id) as UserWithUsage | undefined;
-  return r ? toAdminUser(r) : null;
+  return r ? toAdminUser(db, r) : null;
 }
 
 function adminCount(db: DB): number {
@@ -65,10 +71,7 @@ export function adminRouter(db: DB, cfg: AppConfig): Router {
     const stats: AdminStats = {
       users: one('SELECT COUNT(*) AS n FROM users'),
       activeUsers30d: one('SELECT COUNT(*) AS n FROM users WHERE last_login_at > ?', now - 30 * 86400000),
-      proUsers: one(
-        "SELECT COUNT(*) AS n FROM users WHERE role = 'teacher' AND plan = 'pro' AND (plan_expires_at IS NULL OR plan_expires_at > ?)",
-        now
-      ),
+      proUsers: one(`SELECT COUNT(*) AS n FROM users u WHERE ${PRO_SQL}`, now, now),
       suspendedUsers: one("SELECT COUNT(*) AS n FROM users WHERE status = 'suspended'"),
       courses: one('SELECT COUNT(*) AS n FROM courses'),
       pads: one('SELECT COUNT(*) AS n FROM pads'),
@@ -92,11 +95,11 @@ export function adminRouter(db: DB, cfg: AppConfig): Router {
       params.push(`%${q}%`, `%${q}%`);
     }
     if (plan === 'pro') {
-      where.push("u.role = 'teacher' AND u.plan = 'pro' AND (u.plan_expires_at IS NULL OR u.plan_expires_at > ?)");
-      params.push(Date.now());
+      where.push(PRO_SQL);
+      params.push(Date.now(), Date.now());
     } else if (plan === 'free') {
-      where.push("u.role = 'teacher' AND NOT (u.plan = 'pro' AND (u.plan_expires_at IS NULL OR u.plan_expires_at > ?))");
-      params.push(Date.now());
+      where.push(`u.role = 'teacher' AND NOT ${PRO_SQL}`);
+      params.push(Date.now(), Date.now());
     } else if (plan === 'admin') {
       where.push("u.role = 'admin'");
     }
@@ -109,7 +112,7 @@ export function adminRouter(db: DB, cfg: AppConfig): Router {
     const rows = db
       .prepare(`SELECT ${USER_COLUMNS} FROM users u ${w} ORDER BY u.created_at DESC LIMIT ? OFFSET ?`)
       .all(...params, pageSize, (page - 1) * pageSize) as UserWithUsage[];
-    res.json({ users: rows.map(toAdminUser), total, page, pageSize });
+    res.json({ users: rows.map((r) => toAdminUser(db, r)), total, page, pageSize });
   });
 
   // ---- GET /api/admin/users/:id — ayrıntı + içerik özeti ----
@@ -219,7 +222,7 @@ export function adminRouter(db: DB, cfg: AppConfig): Router {
   });
 
   // ---- DELETE /api/admin/users/:id ----
-  router.delete('/users/:id', (req, res) => {
+  router.delete('/users/:id', async (req, res) => {
     if (req.user!.id === req.params.id) {
       sendError(res, 400, 'Kendinizi silemezsiniz', 'CANNOT_DELETE_SELF');
       return;
@@ -233,9 +236,28 @@ export function adminRouter(db: DB, cfg: AppConfig): Router {
       sendError(res, 400, 'Son yönetici silinemez', 'LAST_ADMIN');
       return;
     }
+    // Ücret almaya devam eden abonelik varsa önce iptal edilmeli; yoksa silinen kişiden para çekilmeye devam eder.
+    const billable = db
+      .prepare(
+        "SELECT id FROM subscriptions WHERE user_id = ? AND status IN ('active', 'on_trial', 'past_due', 'paused', 'unpaid')"
+      )
+      .all(target.id) as Array<{ id: string }>;
+    if (billable.length) {
+      if (!billingEnabled(cfg)) {
+        sendError(res, 409, 'Bu kullanıcının devam eden bir aboneliği var. Önce Lemon Squeezy panelinden iptal edin.', 'HAS_SUBSCRIPTION');
+        return;
+      }
+      try {
+        for (const b of billable) await cancelSubscription(cfg, b.id);
+      } catch (err) {
+        console.error('[admin] abonelik iptal edilemedi:', err instanceof Error ? err.message : err);
+        sendError(res, 409, 'Bu kullanıcının devam eden bir aboneliği var. Önce Lemon Squeezy panelinden iptal edin.', 'HAS_SUBSCRIPTION');
+        return;
+      }
+    }
     dropUserConnections(db, target.id);
     db.prepare('DELETE FROM users WHERE id = ?').run(target.id);
-    res.json({ ok: true });
+    res.json({ ok: true, cancelledSubscriptions: billable.length });
   });
 
   // ---- GET/PATCH /api/admin/settings ----

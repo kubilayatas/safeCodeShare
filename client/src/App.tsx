@@ -19,6 +19,7 @@ import Admin from './pages/Admin';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 import { ToastProvider } from './components/Toast';
+import { I18nProvider, detectInitialLocale } from './i18n';
 
 export default function App(): JSX.Element {
   const [initial, setInitial] = useState<MeResponse | null>(null);
@@ -40,17 +41,19 @@ export default function App(): JSX.Element {
   if (loading) {
     return (
       <div className="app-loading">
-        <div className="spinner" aria-label="Yükleniyor" />
+        <div className="spinner" aria-label="Loading" />
       </div>
     );
   }
 
   return (
-    <AccountProvider initial={initial}>
-      <ToastProvider>
-        <AppRoutes />
-      </ToastProvider>
-    </AccountProvider>
+    <I18nProvider initial={detectInitialLocale(initial?.user.locale)}>
+      <AccountProvider initial={initial}>
+        <ToastProvider>
+          <AppRoutes />
+        </ToastProvider>
+      </AccountProvider>
+    </I18nProvider>
   );
 }
 

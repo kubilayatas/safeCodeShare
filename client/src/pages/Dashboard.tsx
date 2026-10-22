@@ -4,6 +4,7 @@ import type { PadSummary, TreeResponse } from '@safecodeshare/shared';
 import { Link } from 'react-router-dom';
 import { useAccount } from '../account';
 import { PlanBadge, UsageMeter } from '../components/PlanBits';
+import { useI18n } from '../i18n';
 import { apiFetch, ApiError } from '../api';
 import { useToast } from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -38,6 +39,8 @@ export default function Dashboard(): JSX.Element {
   const navigate = useNavigate();
   const { user: maybeUser, entitlements: ent, setMe, refresh } = useAccount();
   const user = maybeUser!;
+  // Bu dosyada `t` konu (topic) değişkeni olarak da kullanıldığı için çeviri fonksiyonu `tt`.
+  const { t: tt, tn } = useI18n();
 
   const [tree, setTree] = useState<TreeResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,7 +82,7 @@ export default function Dashboard(): JSX.Element {
         sel.kind === 'none' && data.courses.length > 0 ? { kind: 'course', courseId: data.courses[0].course.id } : sel
       );
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Ağaç yüklenemedi';
+      const msg = err instanceof ApiError ? err.message : tt('dash.loadFailed');
       toast.show(msg, 'error');
     } finally {
       setLoading(false);
@@ -103,7 +106,7 @@ export default function Dashboard(): JSX.Element {
         const r = await apiFetch<{ pads: PadSummary[] }>(`/api/pads?q=${encodeURIComponent(q)}`);
         setSearchResults(r.pads);
       } catch (err) {
-        const msg = err instanceof ApiError ? err.message : 'Arama başarısız';
+        const msg = err instanceof ApiError ? err.message : tt('dash.searchFailed');
         toast.show(msg, 'error');
       }
     }, 250);
@@ -155,21 +158,21 @@ export default function Dashboard(): JSX.Element {
     } catch {
       // yut
     }
-    toast.show('Çıkış yapıldı', 'success');
+    toast.show(tt('nav.loggedOut'), 'success');
     setMe(null);
     navigate('/login', { replace: true });
   }
 
   async function createCourse(): Promise<void> {
-    const title = window.prompt('Ders başlığı (en fazla 80 karakter):');
+    const title = window.prompt(tt('dash.coursePrompt'));
     if (!title) return;
     setCreatingCourse(true);
     try {
       await apiFetch('/api/courses', { method: 'POST', body: { title: title.trim() } });
-      toast.show('Ders oluşturuldu', 'success');
+      toast.show(tt('dash.courseCreated'), 'success');
       await Promise.all([loadTree(), refresh()]);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Ders oluşturulamadı';
+      const msg = err instanceof ApiError ? err.message : tt('dash.courseCreateFailed');
       toast.show(msg, 'error');
     } finally {
       setCreatingCourse(false);
@@ -177,14 +180,14 @@ export default function Dashboard(): JSX.Element {
   }
 
   async function createTopic(courseId: string): Promise<void> {
-    const title = window.prompt('Konu başlığı:');
+    const title = window.prompt(tt('dash.topicPrompt'));
     if (!title) return;
     try {
       await apiFetch(`/api/courses/${courseId}/topics`, { method: 'POST', body: { title: title.trim() } });
-      toast.show('Konu oluşturuldu', 'success');
+      toast.show(tt('dash.topicCreated'), 'success');
       await loadTree();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Konu oluşturulamadı';
+      const msg = err instanceof ApiError ? err.message : tt('dash.topicCreateFailed');
       toast.show(msg, 'error');
     }
   }
@@ -192,7 +195,7 @@ export default function Dashboard(): JSX.Element {
   async function submitCreatePad(): Promise<void> {
     const t = createModal.title.trim();
     if (!t) {
-      toast.show('Başlık gerekli', 'error');
+      toast.show(tt('dash.titleRequired'), 'error');
       return;
     }
     try {
@@ -205,32 +208,32 @@ export default function Dashboard(): JSX.Element {
           topicId: createModal.topicId
         }
       });
-      toast.show('Kod oluşturuldu', 'success');
+      toast.show(tt('dash.padCreated'), 'success');
       setCreateModal((m) => ({ ...m, open: false, title: '' }));
       await Promise.all([loadTree(), refresh()]);
       navigate(`/pad/${res.pad.id}`);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Kod oluşturulamadı';
+      const msg = err instanceof ApiError ? err.message : tt('dash.padCreateFailed');
       toast.show(msg, 'error');
     }
   }
 
   async function renameCourse(id: string, current: string): Promise<void> {
-    const next = window.prompt('Yeni başlık:', current);
+    const next = window.prompt(tt('dash.renamePrompt'), current);
     if (!next || next === current) return;
-    await patch(`/api/courses/${id}`, { title: next.trim() }, 'Ders yeniden adlandırıldı');
+    await patch(`/api/courses/${id}`, { title: next.trim() }, tt('dash.courseRenamed'));
   }
 
   async function renameTopic(id: string, current: string): Promise<void> {
-    const next = window.prompt('Yeni başlık:', current);
+    const next = window.prompt(tt('dash.renamePrompt'), current);
     if (!next || next === current) return;
-    await patch(`/api/topics/${id}`, { title: next.trim() }, 'Konu yeniden adlandırıldı');
+    await patch(`/api/topics/${id}`, { title: next.trim() }, tt('dash.topicRenamed'));
   }
 
   async function renamePad(id: string, current: string): Promise<void> {
-    const next = window.prompt('Yeni başlık:', current);
+    const next = window.prompt(tt('dash.renamePrompt'), current);
     if (!next || next === current) return;
-    await patch(`/api/pads/${id}`, { title: next.trim() }, 'Kod yeniden adlandırıldı');
+    await patch(`/api/pads/${id}`, { title: next.trim() }, tt('dash.padRenamed'));
   }
 
   async function patch(path: string, body: unknown, successMsg: string): Promise<void> {
@@ -239,7 +242,7 @@ export default function Dashboard(): JSX.Element {
       toast.show(successMsg, 'success');
       await loadTree();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'İşlem başarısız';
+      const msg = err instanceof ApiError ? err.message : tt('dash.actionFailed');
       toast.show(msg, 'error');
     }
   }
@@ -247,11 +250,11 @@ export default function Dashboard(): JSX.Element {
   function askDeleteCourse(id: string, title: string): void {
     setConfirm({
       open: true,
-      title: 'Dersi sil',
-      message: `"${title}" dersini silmek istediğinize emin misiniz? Kodlar silinmez, "Derssiz" klasörüne taşınır.`,
+      title: tt('dash.deleteCourseTitle'),
+      message: tt('dash.deleteCourseMsg', { title }),
       onConfirm: async () => {
         setConfirm((c) => ({ ...c, open: false }));
-        await del(`/api/courses/${id}`, 'Ders silindi');
+        await del(`/api/courses/${id}`, tt('dash.courseDeleted'));
       }
     });
   }
@@ -259,11 +262,11 @@ export default function Dashboard(): JSX.Element {
   function askDeleteTopic(id: string, title: string): void {
     setConfirm({
       open: true,
-      title: 'Konuyu sil',
-      message: `"${title}" konusunu silmek istediğinize emin misiniz? Kodlar dersin konusuz bölümüne taşınır.`,
+      title: tt('dash.deleteTopicTitle'),
+      message: tt('dash.deleteTopicMsg', { title }),
       onConfirm: async () => {
         setConfirm((c) => ({ ...c, open: false }));
-        await del(`/api/topics/${id}`, 'Konu silindi');
+        await del(`/api/topics/${id}`, tt('dash.topicDeleted'));
       }
     });
   }
@@ -271,11 +274,11 @@ export default function Dashboard(): JSX.Element {
   function askDeletePad(id: string, title: string): void {
     setConfirm({
       open: true,
-      title: 'Kodu sil',
-      message: `"${title}" kalıcı olarak silinecek. Emin misiniz?`,
+      title: tt('dash.deletePadTitle'),
+      message: tt('dash.deletePadMsg', { title }),
       onConfirm: async () => {
         setConfirm((c) => ({ ...c, open: false }));
-        await del(`/api/pads/${id}`, 'Kod silindi');
+        await del(`/api/pads/${id}`, tt('dash.padDeleted'));
       }
     });
   }
@@ -286,7 +289,7 @@ export default function Dashboard(): JSX.Element {
       toast.show(successMsg, 'success');
       await Promise.all([loadTree(), refresh()]);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Silme başarısız';
+      const msg = err instanceof ApiError ? err.message : tt('dash.deleteFailed');
       toast.show(msg, 'error');
     }
   }
@@ -348,7 +351,7 @@ export default function Dashboard(): JSX.Element {
       await apiFetch('/api/reorder', { method: 'POST', body: { kind, ids: swapped } });
       await loadTree();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Sıralama başarısız';
+      const msg = err instanceof ApiError ? err.message : tt('dash.reorderFailed');
       toast.show(msg, 'error');
     }
   }
@@ -357,7 +360,7 @@ export default function Dashboard(): JSX.Element {
     const url = `${window.location.origin}/c/${viewToken}`;
     try {
       await navigator.clipboard.writeText(url);
-      toast.show('Ders linki kopyalandı', 'success');
+      toast.show(tt('dash.courseLinkCopied'), 'success');
     } catch {
       toast.show(url, 'info');
     }
@@ -367,7 +370,7 @@ export default function Dashboard(): JSX.Element {
     try {
       const res = await fetch(`/api/courses/${courseId}/export.zip`, { credentials: 'include' });
       if (!res.ok) {
-        let msg = 'Zip indirilemedi';
+        let msg = tt('dash.zipFailed');
         try {
           msg = ((await res.json()) as { error?: string }).error ?? msg;
         } catch {
@@ -379,11 +382,11 @@ export default function Dashboard(): JSX.Element {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'ders.zip';
+      a.download = 'course.zip';
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'İndirme başarısız';
+      const msg = err instanceof Error ? err.message : tt('dash.zipFailed');
       toast.show(msg, 'error');
     }
   }
@@ -397,9 +400,9 @@ export default function Dashboard(): JSX.Element {
       const res = await apiFetch<{ pad: { viewToken: string } }>(`/api/pads/${padId}`);
       const url = `${window.location.origin}/v/${res.pad.viewToken}`;
       await navigator.clipboard.writeText(url);
-      toast.show('İzleme linki kopyalandı', 'success');
+      toast.show(tt('dash.viewLinkCopied'), 'success');
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Kopyalanamadı';
+      const msg = err instanceof ApiError ? err.message : tt('common.copyFailed');
       toast.show(msg, 'error');
     }
   }
@@ -407,10 +410,10 @@ export default function Dashboard(): JSX.Element {
   async function duplicatePad(padId: string): Promise<void> {
     try {
       await apiFetch(`/api/pads/${padId}/duplicate`, { method: 'POST' });
-      toast.show('Kod çoğaltıldı', 'success');
+      toast.show(tt('dash.duplicated'), 'success');
       await Promise.all([loadTree(), refresh()]);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Çoğaltma başarısız';
+      const msg = err instanceof ApiError ? err.message : tt('dash.duplicateFailed');
       toast.show(msg, 'error');
     }
   }
@@ -428,11 +431,11 @@ export default function Dashboard(): JSX.Element {
           topicId: moveModal.topicId
         }
       });
-      toast.show('Kod taşındı', 'success');
+      toast.show(tt('dash.moved'), 'success');
       setMoveModal((m) => ({ ...m, open: false }));
       await loadTree();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Taşıma başarısız';
+      const msg = err instanceof ApiError ? err.message : tt('dash.moveFailed');
       toast.show(msg, 'error');
     }
   }
@@ -458,21 +461,21 @@ export default function Dashboard(): JSX.Element {
   }
 
   const headerTitle = (() => {
-    if (search.trim()) return `Arama: "${search.trim()}"`;
+    if (search.trim()) return tt('dash.searchHeader', { q: search.trim() });
     if (selection.kind === 'course' && tree) {
       const c = tree.courses.find((x) => x.course.id === selection.courseId);
-      return c ? `📚 ${c.course.title}` : 'Ders';
+      return c ? `📚 ${c.course.title}` : tt('dash.course');
     }
     if (selection.kind === 'topic' && tree) {
       const c = tree.courses.find((x) => x.course.id === selection.courseId);
       const t = c?.topics.find((x) => x.topic.id === selection.topicId);
-      return t ? `📝 ${t.topic.title}` : 'Konu';
+      return t ? `📝 ${t.topic.title}` : tt('dash.topic');
     }
     if (selection.kind === 'pad' && tree) {
       const p = collectAllPads(tree).find((x) => x.id === selection.padId);
-      return p ? `💻 ${p.title}` : 'Kod';
+      return p ? `💻 ${p.title}` : tt('dash.pad');
     }
-    return 'Derssiz kodlar';
+    return tt('dash.unassigned');
   })();
 
   return (
@@ -480,7 +483,7 @@ export default function Dashboard(): JSX.Element {
       <aside className="dash-side">
         <div className="dash-side-head">
           <Link className="brand-mark" to="/dashboard">SafeCodeShare</Link>
-          <button className="btn btn-sm btn-ghost" onClick={logout}>Çıkış yap</button>
+          <button className="btn btn-sm btn-ghost" onClick={logout}>{tt('nav.logout')}</button>
         </div>
 
         <div className="side-account">
@@ -490,25 +493,25 @@ export default function Dashboard(): JSX.Element {
           </div>
           {ent && !ent.unlimited && (
             <>
-              <UsageMeter label="Dersler" used={ent.usage.courses} max={ent.limits.maxCourses} />
-              <UsageMeter label="Kodlar" used={ent.usage.pads} max={ent.limits.maxPads} />
-              {ent.plan !== 'pro' && <Link className="small" to="/plans">Pro'nun sunduklarını gör</Link>}
+              <UsageMeter label={tt('usage.courses')} used={ent.usage.courses} max={ent.limits.maxCourses} />
+              <UsageMeter label={tt('usage.pads')} used={ent.usage.pads} max={ent.limits.maxPads} />
+              {ent.plan !== 'pro' && <Link className="small" to="/plans">{tt('account.seePro')}</Link>}
             </>
           )}
-          {user.role === 'admin' && <Link className="small" to="/admin">Yönetim paneli</Link>}
+          {user.role === 'admin' && <Link className="small" to="/admin">{tt('dash.adminPanel')}</Link>}
         </div>
 
         <div className="side-actions">
           <button className="btn btn-primary btn-sm" onClick={createCourse} disabled={creatingCourse}>
-            Ders ekle
+            {tt('dash.addCourse')}
           </button>
-          <button className="btn btn-sm" onClick={openCreateModal}>Kod ekle</button>
+          <button className="btn btn-sm" onClick={openCreateModal}>{tt('dash.addPad')}</button>
         </div>
 
         <input
           className="input"
-          placeholder="Başlıkta veya kodda ara"
-          aria-label="Kodlarda ara"
+          placeholder={tt('dash.search')}
+          aria-label={tt('dash.searchLabel')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -537,14 +540,14 @@ export default function Dashboard(): JSX.Element {
       <main className="dash-main">
         <div className="dash-header">
           <h1>{headerTitle}</h1>
-          <div className="muted">{currentList.length} kod</div>
+          <div className="muted">{tn('common.padCount', currentList.length)}</div>
         </div>
 
         {currentList.length === 0 ? (
           <div className="empty-state">
-            <p>{search.trim() ? 'Aramana uyan kod bulunamadı.' : 'Burada henüz kod yok.'}</p>
+            <p>{tt(search.trim() ? 'dash.emptySearch' : 'dash.empty')}</p>
             {!search.trim() && (
-              <button className="btn btn-primary" onClick={openCreateModal}>Kod ekle</button>
+              <button className="btn btn-primary" onClick={openCreateModal}>{tt('dash.addPad')}</button>
             )}
           </div>
         ) : (
@@ -571,9 +574,9 @@ export default function Dashboard(): JSX.Element {
       {createModal.open && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
-            <h3 style={{ marginTop: 0 }}>Kod ekle</h3>
+            <h3 style={{ marginTop: 0 }}>{tt('dash.newPadTitle')}</h3>
             <div className="field">
-              <label>Başlık</label>
+              <label>{tt('dash.fieldTitle')}</label>
               <input
                 className="input"
                 autoFocus
@@ -583,14 +586,14 @@ export default function Dashboard(): JSX.Element {
               />
             </div>
             <div className="field">
-              <label>Dil</label>
+              <label>{tt('dash.fieldLanguage')}</label>
               <LanguagePicker
                 value={createModal.language}
                 onChange={(id) => setCreateModal((m) => ({ ...m, language: id }))}
               />
             </div>
             <div className="field">
-              <label>Ders</label>
+              <label>{tt('dash.fieldCourse')}</label>
               <select
                 className="select"
                 value={createModal.courseId ?? ''}
@@ -599,21 +602,21 @@ export default function Dashboard(): JSX.Element {
                   setCreateModal((m) => ({ ...m, courseId: cid, topicId: null }));
                 }}
               >
-                <option value="">— Derssiz —</option>
+                <option value="">{tt('dash.noCourse')}</option>
                 {tree?.courses.map((c) => (
                   <option key={c.course.id} value={c.course.id}>{c.course.title}</option>
                 ))}
               </select>
             </div>
             <div className="field">
-              <label>Konu</label>
+              <label>{tt('dash.fieldTopic')}</label>
               <select
                 className="select"
                 value={createModal.topicId ?? ''}
                 onChange={(e) => setCreateModal((m) => ({ ...m, topicId: e.target.value || null }))}
                 disabled={!createModal.courseId}
               >
-                <option value="">— Konusuz —</option>
+                <option value="">{tt('dash.noTopic')}</option>
                 {tree?.courses
                   .find((c) => c.course.id === createModal.courseId)
                   ?.topics.map((t) => (
@@ -626,10 +629,10 @@ export default function Dashboard(): JSX.Element {
                 className="btn"
                 onClick={() => setCreateModal((m) => ({ ...m, open: false }))}
               >
-                Vazgeç
+                {tt('common.cancel')}
               </button>
               <button className="btn btn-primary" onClick={() => void submitCreatePad()}>
-                Oluştur
+                {tt('dash.create')}
               </button>
             </div>
           </div>
@@ -640,29 +643,29 @@ export default function Dashboard(): JSX.Element {
       {moveModal.open && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
-            <h3 style={{ marginTop: 0 }}>Kodu taşı</h3>
+            <h3 style={{ marginTop: 0 }}>{tt('dash.moveTitle')}</h3>
             <div className="field">
-              <label>Hedef ders</label>
+              <label>{tt('dash.targetCourse')}</label>
               <select
                 className="select"
                 value={moveModal.courseId ?? ''}
                 onChange={(e) => setMoveModal((m) => ({ ...m, courseId: e.target.value || null, topicId: null }))}
               >
-                <option value="">— Derssiz —</option>
+                <option value="">{tt('dash.noCourse')}</option>
                 {tree?.courses.map((c) => (
                   <option key={c.course.id} value={c.course.id}>{c.course.title}</option>
                 ))}
               </select>
             </div>
             <div className="field">
-              <label>Hedef konu</label>
+              <label>{tt('dash.targetTopic')}</label>
               <select
                 className="select"
                 value={moveModal.topicId ?? ''}
                 onChange={(e) => setMoveModal((m) => ({ ...m, topicId: e.target.value || null }))}
                 disabled={!moveModal.courseId}
               >
-                <option value="">— Konusuz —</option>
+                <option value="">{tt('dash.noTopic')}</option>
                 {tree?.courses
                   .find((c) => c.course.id === moveModal.courseId)
                   ?.topics.map((t) => (
@@ -671,8 +674,8 @@ export default function Dashboard(): JSX.Element {
               </select>
             </div>
             <div className="modal-actions">
-              <button className="btn" onClick={() => setMoveModal((m) => ({ ...m, open: false }))}>Vazgeç</button>
-              <button className="btn btn-primary" onClick={() => void submitMove()}>Taşı</button>
+              <button className="btn" onClick={() => setMoveModal((m) => ({ ...m, open: false }))}>{tt('common.cancel')}</button>
+              <button className="btn btn-primary" onClick={() => void submitMove()}>{tt('dash.move')}</button>
             </div>
           </div>
         </div>
@@ -685,7 +688,7 @@ export default function Dashboard(): JSX.Element {
         onConfirm={confirm.onConfirm}
         onCancel={() => setConfirm((c) => ({ ...c, open: false }))}
         danger
-        confirmLabel="Sil"
+        confirmLabel={tt('common.delete')}
       />
     </div>
   );

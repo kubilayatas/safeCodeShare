@@ -1,5 +1,5 @@
 // Hesapsız erişim uçları + korumalı SSE akışı.
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import rateLimit from 'express-rate-limit';
 import { UnlockSchema, languageExtension } from '@safecodeshare/shared';
 import type { PublicCourseInfo, PublicEditInfo, PublicViewInfo } from '@safecodeshare/shared';
@@ -14,6 +14,7 @@ import {
 } from '../util/cookies';
 import { safeFilename } from '../util/filename';
 import { sendError } from '../util/errors';
+import { tReq } from '../i18n';
 import { SESSION_COOKIE, findSession } from '../auth/sessions';
 import { verifyPassword } from '../auth/passwords';
 import { getSiteSettings } from '../account/entitlements';
@@ -113,7 +114,7 @@ export function publicRouter(db: DB, cfg: AppConfig): Router {
     limit: cfg.UNLOCK_RATE_MAX,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
-    message: { error: 'Çok fazla deneme', code: 'RATE_LIMIT' }
+    message: (req: Request) => ({ error: tReq(req, 'Çok fazla deneme'), code: 'RATE_LIMIT' })
   });
 
   // ---- GET /api/public/site — kayıt ve plan sayfaları için herkese açık bilgi ----
@@ -143,9 +144,10 @@ export function publicRouter(db: DB, cfg: AppConfig): Router {
     if (access.level === 'none') {
       const requiresPassword = access.reason === 'Şifre gerekli';
       res.status(403).json({
-        error: access.reason ?? 'Bu paylaşıma erişilemiyor',
-        code: requiresPassword ? 'PASSWORD_REQUIRED' : 'FORBIDDEN',
+        error: tReq(req, access.reason ?? 'Bu paylaşıma erişilemiyor'),
+        code: requiresPassword ? 'PASSWORD_REQUIRED' : access.availableAt ? 'NOT_YET_VISIBLE' : 'FORBIDDEN',
         requiresPassword,
+        availableAt: access.availableAt ?? null,
         protected: row.copy_protect === 1
       });
       return;
@@ -407,14 +409,14 @@ export function publicRouter(db: DB, cfg: AppConfig): Router {
       return;
     }
     if (course.page_enabled !== 1) {
-      res.status(403).json({ error: 'Bu ders sayfası kapalı', code: 'PAGE_DISABLED' });
+      sendError(res, 403, 'Bu ders sayfası kapalı', 'PAGE_DISABLED');
       return;
     }
     const owner = db.prepare('SELECT status FROM users WHERE id = ?').get(course.owner_id) as
       | { status: string }
       | undefined;
     if (!owner || owner.status === 'suspended') {
-      res.status(403).json({ error: 'Bu ders sayfası şu anda kullanılamıyor', code: 'PAGE_DISABLED' });
+      sendError(res, 403, 'Bu ders sayfası şu anda kullanılamıyor', 'PAGE_DISABLED');
       return;
     }
 

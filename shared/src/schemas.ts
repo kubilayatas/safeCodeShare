@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { LOCALES } from './locales';
+
+const LocaleSchema = z.enum(LOCALES.map((l) => l.code) as [string, ...string[]]);
 
 // Kimlik doğrulama
 export const EmailSchema = z.string().trim().toLowerCase().email('Geçerli bir e-posta girin').max(200);
@@ -20,12 +23,16 @@ export const RegisterSchema = z.object({
   password: PasswordSchema,
   acceptTerms: z.literal(true, { errorMap: () => ({ message: 'Kullanım koşullarını kabul etmelisiniz' }) }),
   // Bot tuzağı: gerçek kullanıcılar bu alanı görmez ve boş bırakır.
-  website: z.string().max(0).optional()
+  website: z.string().max(0).optional(),
+  locale: LocaleSchema.optional()
 });
 
-export const UpdateProfileSchema = z.object({
-  name: z.string().trim().min(1, 'Ad gerekli').max(120)
-});
+export const UpdateProfileSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Ad gerekli').max(120).optional(),
+    locale: LocaleSchema.nullable().optional()
+  })
+  .refine((v) => v.name !== undefined || v.locale !== undefined, { message: 'Ad gerekli' });
 
 // Admin
 export const CreateUserSchema = z.object({

@@ -113,7 +113,7 @@ export default function Editor({
         else onConnectionStatus?.('disconnected');
       },
       onAuthenticationFailed: (data: { reason?: string }) => {
-        onError?.(data?.reason ?? 'Bu payda yazma yetkiniz yok.');
+        onError?.(data?.reason ?? 'permission-denied');
       },
       onStateless: ({ payload }) => {
         try {
@@ -320,7 +320,7 @@ export default function Editor({
   }, [settings.tabSize, settings.useTabs]);
 
   return (
-    <div className={`editor-shell theme-${themeClass}`}>
+    <div className={`editor-shell theme-${themeClass}`} dir="ltr">
       <div ref={containerRef} className="editor-mount" />
     </div>
   );

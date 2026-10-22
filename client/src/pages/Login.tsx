@@ -5,6 +5,7 @@ import { apiFetch, ApiError } from '../api';
 import { useAccount } from '../account';
 import { useToast } from '../components/Toast';
 import AuthLayout from '../components/AuthLayout';
+import { useI18n } from '../i18n';
 
 export default function Login(): JSX.Element {
   const { setMe } = useAccount();
@@ -14,6 +15,7 @@ export default function Login(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [registrationOpen, setRegistrationOpen] = useState(true);
   const toast = useToast();
+  const { t } = useI18n();
 
   useEffect(() => {
     apiFetch<{ registrationOpen: boolean }>('/api/public/site')
@@ -29,10 +31,10 @@ export default function Login(): JSX.Element {
     setBusy(true);
     try {
       const me = await apiFetch<MeResponse>('/api/auth/login', { method: 'POST', body: { email, password } });
-      toast.show(`Hoş geldin, ${me.user.name}`, 'success');
+      toast.show(t('login.welcome', { name: me.user.name }), 'success');
       setMe(me);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Sunucuya ulaşılamadı. Bağlantını kontrol edip tekrar dene.');
+      setError(err instanceof ApiError ? err.message : t('common.unreachable'));
     } finally {
       setBusy(false);
     }
@@ -41,13 +43,13 @@ export default function Login(): JSX.Element {
   return (
     <AuthLayout>
       <form className="login-card" onSubmit={submit} noValidate>
-        <h1 className="login-title">Giriş yap</h1>
-        <p className="login-sub">Öğretmen hesabınla devam et.</p>
+        <h1 className="login-title">{t('login.title')}</h1>
+        <p className="login-sub">{t('login.subtitle')}</p>
 
         {error && <div className="alert" role="alert">{error}</div>}
 
         <div className="field">
-          <label htmlFor="email">E-posta</label>
+          <label htmlFor="email">{t('login.email')}</label>
           <input
             id="email"
             className="input"
@@ -60,7 +62,7 @@ export default function Login(): JSX.Element {
         </div>
 
         <div className="field">
-          <label htmlFor="password">Parola</label>
+          <label htmlFor="password">{t('login.password')}</label>
           <input
             id="password"
             className="input"
@@ -73,17 +75,17 @@ export default function Login(): JSX.Element {
         </div>
 
         <button className="btn btn-primary btn-block" type="submit" disabled={busy}>
-          {busy ? 'Giriş yapılıyor…' : 'Giriş yap'}
+          {t(busy ? 'login.submitting' : 'login.submit')}
         </button>
 
         <p className="login-foot">
           {registrationOpen ? (
-            <>Hesabın yok mu? <Link to="/register">Ücretsiz hesap oluştur</Link></>
+            <>{t('login.noAccount')} <Link to="/register">{t('login.createFree')}</Link></>
           ) : (
-            <>Yeni hesap oluşturma şu anda kapalı.</>
+            <>{t('login.registrationClosed')}</>
           )}
           <br />
-          Parolanı unuttuysan site yöneticisinden sıfırlamasını iste.
+          {t('login.forgot')}
         </p>
       </form>
     </AuthLayout>

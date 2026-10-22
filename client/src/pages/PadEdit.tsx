@@ -20,6 +20,7 @@ import StatusBar from '../components/StatusBar';
 import Toolbar from '../components/Toolbar';
 import AdBanner from '../components/AdBanner';
 import { applyFormatted } from '../editor/applyFormatted';
+import { useI18n } from '../i18n';
 import {
   colorForName,
   ensureNickname,
@@ -40,13 +41,14 @@ export default function PadEdit(): JSX.Element {
   const { editToken } = useParams<{ editToken: string }>();
   const navigate = useNavigate();
   const toast = useToast();
+  const { t, locale: i18nLocale } = useI18n();
 
   const [info, setInfo] = useState<PublicEditInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const [presence, setPresence] = useState<Presence>({ owners: 0, editors: 0, viewers: 0 });
-  const [settings, setSettings] = useState<AppSettings>(() => ensureNickname(loadSettings()));
+  const [settings, setSettings] = useState<AppSettings>(() => ensureNickname(loadSettings(), t('view.student')));
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [ctx, setCtx] = useState<EditorContext | null>(null);
@@ -65,7 +67,7 @@ export default function PadEdit(): JSX.Element {
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof ApiError ? err.message : 'Düzenleme sayfası açılamadı');
+        setError(err instanceof ApiError ? err.message : t('edit.openFailed'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -80,7 +82,7 @@ export default function PadEdit(): JSX.Element {
   }, [settings]);
 
   const nickname = useMemo(
-    () => (settings.nickname.trim().length > 0 ? settings.nickname : 'Öğrenci'),
+    () => (settings.nickname.trim().length > 0 ? settings.nickname : t('view.student')),
     [settings.nickname]
   );
   const color = useMemo(() => colorForName(nickname), [nickname]);
@@ -90,9 +92,9 @@ export default function PadEdit(): JSX.Element {
       if (!ctx || !info) return;
       try {
         await ctx.setLanguage(language);
-        toast.show('Dil güncellendi', 'success');
+        toast.show(t('pad.languageChanged'), 'success');
       } catch {
-        toast.show('Dil değiştirilemedi', 'error');
+        toast.show(t('pad.languageFailed'), 'error');
       }
     },
     [ctx, info, toast]
@@ -113,14 +115,16 @@ export default function PadEdit(): JSX.Element {
         editToken
       );
       const applied = applyFormatted(ctx.view, res.code);
-      toast.show(applied ? 'Kod biçimlendirildi' : 'Zaten biçimli', 'success');
+      toast.show(t(applied ? 'pad.formatted' : 'pad.alreadyFormatted'), 'success');
     } catch (err) {
       const fmtErr = err as FormatError;
       if (fmtErr.status === 422) {
-        const posInfo = fmtErr.line != null ? ` (satır ${fmtErr.line})` : '';
-        toast.show(`${fmtErr.message}${posInfo}`, 'error');
+        toast.show(
+          fmtErr.line != null ? t('pad.formatAtLine', { message: fmtErr.message, line: fmtErr.line }) : fmtErr.message,
+          'error'
+        );
       } else {
-        toast.show(err instanceof Error ? err.message : 'Biçimlendirme başarısız', 'error');
+        toast.show(err instanceof Error ? err.message : t('pad.formatFailed'), 'error');
       }
     } finally {
       setBeautifying(false);
@@ -129,11 +133,12 @@ export default function PadEdit(): JSX.Element {
 
   const saveVersion = useCallback(async (): Promise<void> => {
     if (!info || !editToken) return;
-    const label = window.prompt('Sürüm etiketi (boş bırakılabilir):', '') ?? '';
+    const label = window.prompt(t('pad.versionPrompt'), '') ?? '';
     try {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'X-Edit-Token': editToken
+        'X-Edit-Token': editToken,
+        'X-Locale': i18nLocale
       };
       const res = await fetch(`/api/pads/${info.padId}/versions`, {
         method: 'POST',
@@ -143,11 +148,11 @@ export default function PadEdit(): JSX.Element {
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? 'Sürüm kaydedilemedi');
+        throw new Error(body.error ?? t('pad.versionFailed'));
       }
-      toast.show('Sürüm kaydedildi', 'success');
+      toast.show(t('pad.versionSaved'), 'success');
     } catch (err) {
-      toast.show(err instanceof Error ? err.message : 'Sürüm kaydedilemedi', 'error');
+      toast.show(err instanceof Error ? err.message : t('pad.versionFailed'), 'error');
     }
   }, [info, editToken, toast]);
 
@@ -155,9 +160,9 @@ export default function PadEdit(): JSX.Element {
     if (!ctx) return;
     try {
       await navigator.clipboard.writeText(ctx.getText());
-      toast.show('Kod kopyalandı', 'success');
+      toast.show(t('pad.codeCopied'), 'success');
     } catch {
-      toast.show('Kopyalanamadı', 'error');
+      toast.show(t('common.copyFailed'), 'error');
     }
   }
 
@@ -177,9 +182,9 @@ export default function PadEdit(): JSX.Element {
   if (error || !info) {
     return (
       <div className="error-page">
-        <h2>Düzenleme kapatıldı</h2>
-        <p>{error ?? 'Bu düzenleme bağlantısı geçerli değil.'}</p>
-        <button className="btn" onClick={() => navigate('/login')}>Giriş yap</button>
+        <h2>{t('edit.closedTitle')}</h2>
+        <p>{error ?? t('edit.invalidLink')}</p>
+        <button className="btn" onClick={() => navigate('/login')}>{t('nav.login')}</button>
       </div>
     );
   }
@@ -195,18 +200,18 @@ export default function PadEdit(): JSX.Element {
               className="btn btn-sm"
               onClick={() => void runBeautify()}
               disabled={beautifying || !ctx}
-              title="Kodu biçimlendir (Ctrl+Alt+F)"
+              title={t('pad.formatTitle')}
             >
-              {beautifying ? '✨ …' : '✨ Düzenle'}
+              {t(beautifying ? 'pad.formatting' : 'pad.format')}
             </button>
           </>
         }
         right={
           <>
-            <button className="btn btn-sm" onClick={() => void copyAll()}>📋 Kopyala</button>
-            <button className="btn btn-sm" onClick={() => void saveVersion()} title="Sürüm kaydet (Ctrl+S)">💾</button>
-            <button className="btn btn-sm" onClick={() => setShowHelp(true)} title="Kısayollar (F1)">⌨</button>
-            <button className="btn btn-sm" onClick={() => setShowSettings((v) => !v)}>⚙</button>
+            <button className="btn btn-sm" onClick={() => void copyAll()}>{t('view.copy')}</button>
+            <button className="btn btn-sm" onClick={() => void saveVersion()} title={t('pad.saveVersion')} aria-label={t('pad.saveVersion')}>💾</button>
+            <button className="btn btn-sm" onClick={() => setShowHelp(true)} title={t('view.shortcuts')} aria-label={t('view.shortcuts')}>⌨</button>
+            <button className="btn btn-sm" onClick={() => setShowSettings((v) => !v)} title={t('pad.settings')} aria-label={t('pad.settings')}>⚙</button>
             <ConnectionDot status={status} />
             <PresenceBar presence={presence} selfName={nickname} selfColor={color} />
           </>
@@ -234,7 +239,7 @@ export default function PadEdit(): JSX.Element {
           onCursorChange={setCursor}
           onContentChange={onContentChange}
           onReady={setCtx}
-          onError={(msg) => toast.show(msg, 'error')}
+          onError={() => toast.show(t('edit.invalidLink'), 'error')}
         />
       </div>
 

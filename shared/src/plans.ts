@@ -74,11 +74,38 @@ export type SiteSettings = {
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   registrationOpen: true,
-  upgradeInfo: 'Pro plana geçmek için site yöneticisiyle iletişime geçin.',
+  upgradeInfo: '', // boşsa istemci kendi dilinde varsayılan metni gösterir
   plans: DEFAULT_PLANS
 };
 
 export type Usage = { courses: number; pads: number };
+
+// ---------------- Ödeme (Lemon Squeezy) ----------------
+
+// Lemon Squeezy abonelik durumları
+export const BILLING_STATUSES = ['on_trial', 'active', 'paused', 'past_due', 'unpaid', 'cancelled', 'expired'] as const;
+export type BillingStatus = (typeof BILLING_STATUSES)[number];
+export type BillingInterval = 'month' | 'year';
+
+// Kullanıcının en güncel aboneliğinin özeti (istemciye gider)
+export type BillingInfo = {
+  status: BillingStatus;
+  interval: BillingInterval | null;
+  renewsAt: number | null; // bir sonraki ödeme
+  endsAt: number | null; // iptal edildiyse Pro'nun biteceği an
+  hasAccess: boolean; // bu abonelik şu an Pro sağlıyor mu
+  cardBrand: string | null;
+  cardLast4: string | null;
+  testMode: boolean;
+};
+
+// Planlar sayfası için herkese açık ödeme bilgisi
+export type BillingConfig = {
+  enabled: boolean; // Lemon Squeezy ayarları yapılmış mı
+  intervals: BillingInterval[]; // satın alınabilen dönemler (varyantı tanımlı olanlar)
+  currency: string; // ISO kodu, ör. USD
+  prices: Record<BillingInterval, number | null>; // en küçük birimde (sent)
+};
 
 export type Entitlements = {
   plan: PlanId; // etkin plan (süresi dolan pro → free)
@@ -87,6 +114,7 @@ export type Entitlements = {
   limits: PlanLimits;
   usage: Usage;
   upgradeInfo: string;
+  billing: BillingInfo | null; // ödeme sistemiyle alınmış abonelik (yoksa null)
 };
 
 // Ham değeri güvenli bir PlanLimits'e çevirir (eksik alanlar varsayılandan).

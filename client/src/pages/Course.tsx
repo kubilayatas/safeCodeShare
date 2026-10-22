@@ -1,22 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { PublicCourseInfo } from '@safecodeshare/shared';
-import { languageLabel } from '@safecodeshare/shared';
 import { apiFetch, ApiError } from '../api';
 import AdBanner from '../components/AdBanner';
+import { useI18n } from '../i18n';
+import { useLangLabel, LocalePicker } from '../i18n/LocalePicker';
 
 type LoadError = { code: string; message: string; status: number };
-
-function relative(ts: number): string {
-  const diff = Date.now() - ts;
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'az önce';
-  if (m < 60) return `${m} dk önce`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h} saat önce`;
-  const d = Math.floor(h / 24);
-  return `${d} gün önce`;
-}
 
 export default function Course(): JSX.Element {
   const { courseViewToken } = useParams<{ courseViewToken: string }>();
@@ -24,7 +14,11 @@ export default function Course(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<LoadError | null>(null);
   const [q, setQ] = useState('');
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const { t, tn, formatRelative, formatList } = useI18n();
+  const langLabel = useLangLabel();
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+    window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+  );
 
   const load = async (): Promise<void> => {
     if (!courseViewToken) return;
@@ -36,7 +30,7 @@ export default function Course(): JSX.Element {
       if (err instanceof ApiError) {
         setError({ code: err.code, message: err.message, status: err.status });
       } else {
-        setError({ code: 'UNKNOWN', message: 'Yüklenemedi', status: 0 });
+        setError({ code: 'UNKNOWN', message: t('view.loadFailed'), status: 0 });
       }
     } finally {
       setLoading(false);
@@ -79,8 +73,8 @@ export default function Course(): JSX.Element {
       return (
         <div className="public-gate">
           <div className="public-card">
-            <h2>Bu ders sayfası kapalı</h2>
-            <p className="muted">Öğretmen bu sayfayı geçici olarak kapatmış olabilir.</p>
+            <h2>{t('course.closedTitle')}</h2>
+            <p className="muted">{t('course.closedBody')}</p>
           </div>
         </div>
       );
@@ -88,7 +82,7 @@ export default function Course(): JSX.Element {
     return (
       <div className="public-gate">
         <div className="public-card">
-          <h2>Erişilemiyor</h2>
+          <h2>{t('view.unavailable')}</h2>
           <p>{error.message}</p>
         </div>
       </div>
@@ -109,21 +103,24 @@ export default function Course(): JSX.Element {
         <div className="course-header-actions">
           <input
             className="input"
-            placeholder="Kod ara…"
+            placeholder={t('course.search')}
+            aria-label={t('course.search')}
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
+          <LocalePicker compact id="course-locale" />
           <button
             className="btn btn-sm"
             onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-            title="Tema değiştir"
+            title={t('course.toggleTheme')}
+            aria-label={t('course.toggleTheme')}
           >
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
         </div>
       </header>
 
-      <p className="muted course-summary">{total} kod görüntüleniyor · her 60 saniyede bir yenilenir</p>
+      <p className="muted course-summary">{tn('course.summary', total)}</p>
 
       <AdBanner className="course-ad-banner" format="auto" />
 
@@ -131,18 +128,18 @@ export default function Course(): JSX.Element {
         <section key={topic.title} className="course-section">
           <h2>📝 {topic.title}</h2>
           {topic.pads.length === 0 ? (
-            <p className="muted">Bu konuda görünür kod yok.</p>
+            <p className="muted">{t('course.emptyTopic')}</p>
           ) : (
             <ul className="course-list">
               {topic.pads.map((p) => (
                 <li key={p.viewToken} className="course-item">
                   <Link to={`/v/${p.viewToken}`} className="course-item-title">
-                    {p.copyProtect && <span title="Kopyalama korumalı">🛡 </span>}
-                    {p.hasPassword && <span title="Şifreli">🔒 </span>}
+                    {p.copyProtect && <span title={t('course.copyProtected')}>🛡 </span>}
+                    {p.hasPassword && <span title={t('course.passwordProtected')}>🔒 </span>}
                     {p.title}
                   </Link>
                   <span className="muted">
-                    {languageLabel(p.language)} · {p.lineCount} satır · {relative(p.updatedAt)}
+                    {formatList([langLabel(p.language), tn('common.lineCount', p.lineCount), formatRelative(p.updatedAt)])}
                   </span>
                 </li>
               ))}
@@ -153,17 +150,17 @@ export default function Course(): JSX.Element {
 
       {filtered.loosePads.length > 0 && (
         <section className="course-section">
-          <h2>📂 Konusuz kodlar</h2>
+          <h2>📂 {t('tree.ungrouped')}</h2>
           <ul className="course-list">
             {filtered.loosePads.map((p) => (
               <li key={p.viewToken} className="course-item">
                 <Link to={`/v/${p.viewToken}`} className="course-item-title">
-                  {p.copyProtect && <span title="Kopyalama korumalı">🛡 </span>}
-                  {p.hasPassword && <span title="Şifreli">🔒 </span>}
+                  {p.copyProtect && <span title={t('course.copyProtected')}>🛡 </span>}
+                  {p.hasPassword && <span title={t('course.passwordProtected')}>🔒 </span>}
                   {p.title}
                 </Link>
                 <span className="muted">
-                  {languageLabel(p.language)} · {p.lineCount} satır · {relative(p.updatedAt)}
+                  {formatList([langLabel(p.language), tn('common.lineCount', p.lineCount), formatRelative(p.updatedAt)])}
                 </span>
               </li>
             ))}
@@ -172,7 +169,7 @@ export default function Course(): JSX.Element {
       )}
 
       {filtered.topics.length === 0 && filtered.loosePads.length === 0 && (
-        <p className="muted">Sonuç yok.</p>
+        <p className="muted">{t('common.noResults')}</p>
       )}
     </div>
   );

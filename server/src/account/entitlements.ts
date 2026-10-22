@@ -14,6 +14,7 @@ import {
 import { FEATURE_LABELS } from '@safecodeshare/shared';
 import type { DB } from '../db';
 import { HttpError } from '../util/errors';
+import { latestSubscription, toBillingInfo } from '../billing/subscriptions';
 
 // ---------------- Site ayarları ----------------
 
@@ -36,7 +37,8 @@ export function getSiteSettings(db: DB): SiteSettings {
   const plans = parse('plans') as Partial<Record<PlanId, unknown>> | undefined;
   return {
     registrationOpen: typeof reg === 'boolean' ? reg : DEFAULT_SITE_SETTINGS.registrationOpen,
-    upgradeInfo: typeof info === 'string' ? info : DEFAULT_SITE_SETTINGS.upgradeInfo,
+    // Boşsa istemci kendi dilinde varsayılan metni gösterir.
+    upgradeInfo: typeof info === 'string' ? info : '',
     plans: {
       free: normalizeLimits(plans?.free, DEFAULT_SITE_SETTINGS.plans.free),
       pro: normalizeLimits(plans?.pro, DEFAULT_SITE_SETTINGS.plans.pro)
@@ -68,8 +70,14 @@ type AccountRow = {
   limits_override: string | null;
 };
 
-export function effectivePlan(row: { plan: string; plan_expires_at: number | null }, now = Date.now()): PlanId {
+// Yöneticinin elle verdiği plan (users.plan). Ödemeyle gelen Pro ayrıca eklenir: billingUntil.
+export function effectivePlan(
+  row: { plan: string; plan_expires_at: number | null },
+  now = Date.now(),
+  billingUntil = 0
+): PlanId {
   if (row.plan === 'pro' && (row.plan_expires_at == null || row.plan_expires_at > now)) return 'pro';
+  if (billingUntil > now) return 'pro';
   return 'free';
 }
 
@@ -96,20 +104,31 @@ export function getEntitlements(db: DB, userId: string, settings?: SiteSettings)
     .get(userId) as AccountRow | undefined;
   if (!row) throw new HttpError(401, 'Kullanıcı bulunamadı', 'UNAUTHORIZED');
   const usage = getUsage(db, userId);
+  const now = Date.now();
+  const sub = latestSubscription(db, userId, now);
+  const billing = sub ? toBillingInfo(sub, now) : null;
   if (row.role === 'admin') {
-    return { plan: 'pro', planExpiresAt: null, unlimited: true, limits: UNLIMITED, usage, upgradeInfo: s.upgradeInfo };
+    return { plan: 'pro', planExpiresAt: null, unlimited: true, limits: UNLIMITED, usage, upgradeInfo: s.upgradeInfo, billing };
   }
-  const plan = effectivePlan(row);
+  const billingUntil = sub && billing?.hasAccess ? sub.access_until : 0;
+  const plan = effectivePlan(row, now, billingUntil);
   const base = s.plans[plan];
   const limits = normalizeLimits(parseOverride(row.limits_override), base);
-  return {
-    plan,
-    planExpiresAt: row.plan === 'pro' ? row.plan_expires_at : null,
-    unlimited: false,
-    limits,
-    usage,
-    upgradeInfo: s.upgradeInfo
-  };
+
+  // Pro'nun ne zaman biteceği: süresiz elle verilmiş Pro veya yenilenen abonelik → null (bitiş yok).
+  const manualActive = row.plan === 'pro' && (row.plan_expires_at == null || row.plan_expires_at > now);
+  let planExpiresAt: number | null = null;
+  if (plan === 'pro') {
+    const manualOpenEnded = manualActive && row.plan_expires_at == null;
+    const billingRenewing = Boolean(billing?.hasAccess && billing.status !== 'cancelled');
+    if (!manualOpenEnded && !billingRenewing) {
+      const candidates = [manualActive ? row.plan_expires_at : null, billing?.hasAccess ? billing.endsAt : null].filter(
+        (v): v is number => typeof v === 'number'
+      );
+      planExpiresAt = candidates.length ? Math.max(...candidates) : null;
+    }
+  }
+  return { plan, planExpiresAt, unlimited: false, limits, usage, upgradeInfo: s.upgradeInfo, billing };
 }
 
 // Özellik kapalıysa 403 fırlatır. Hata kodu istemcinin "Pro'ya geç" mesajını göstermesi içindir.
@@ -117,8 +136,10 @@ export function requireFeature(ent: Entitlements, key: FeatureKey): void {
   if (ent.unlimited || ent.limits[key]) return;
   throw new HttpError(
     403,
-    `"${FEATURE_LABELS[key]}" özelliği ${PLAN_LABELS[ent.plan]} planınızda yok.`,
-    'PLAN_LIMIT'
+    '"{feature}" özelliği {plan} planınızda yok.',
+    'PLAN_LIMIT',
+    { feature: FEATURE_LABELS[key], plan: PLAN_LABELS[ent.plan] },
+    ['feature', 'plan']
   );
 }
 
@@ -127,11 +148,14 @@ export function requireCapacity(ent: Entitlements, kind: 'courses' | 'pads', add
   const max = kind === 'courses' ? ent.limits.maxCourses : ent.limits.maxPads;
   if (max == null) return;
   if (ent.usage[kind] + adding > max) {
-    const label = kind === 'courses' ? 'ders' : 'kod';
     throw new HttpError(
       403,
-      `${PLAN_LABELS[ent.plan]} planında en fazla ${max} ${label} oluşturabilirsiniz.`,
-      'PLAN_LIMIT'
+      kind === 'courses'
+        ? '{plan} planında en fazla {max} ders oluşturabilirsiniz.'
+        : '{plan} planında en fazla {max} kod oluşturabilirsiniz.',
+      'PLAN_LIMIT',
+      { plan: PLAN_LABELS[ent.plan], max },
+      ['plan']
     );
   }
 }

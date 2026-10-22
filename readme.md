@@ -19,6 +19,8 @@
 - **Sürüm Geçmişi & Geri Yükleme:** Düzenlemeler periyodik olarak ve manuel butonla kaydedilir. İstenilen sürüme anında geri dönülebilir veya yeni bir pad olarak klonlanabilir.
 - **Sunum Modu & QR Kod:** Projeksiyonda ve akıllı tahtada ders anlatımı için tam ekran sunum modu ve tek tıkla öğrencilerin telefonla açabilmesi için dev QR kod.
 - **Embed Desteği:** Ders yönetim sistemlerine (Moodle, Canvas, Notion vb.) iframe ile gömülebilme (`/embed/:token`).
+- **Ödeme (Lemon Squeezy):** Öğretmenler Pro'yu aylık ya da yıllık abonelikle kendileri alır. Vergi, fatura ve iade işlerini Lemon Squeezy üstlenir. Kurulum: [ODEME.md](ODEME.md).
+- **14 Arayüz Dili:** İngilizce, Türkçe, Almanca, Fransızca, İspanyolca, İtalyanca, Portekizce (Brezilya), Rusça, Çince (basitleştirilmiş), Japonca, Korece, Arapça (sağdan sola), Hintçe ve Endonezce. Ayrıntılar aşağıda, "Diller (i18n)" bölümünde.
 - **Yedekleme & Yönetim:** SQLite yerel yedekleme API'si (`better-sqlite3`), crontab ile otomatik günlük yedekleme ve yönetici panelinden tam yedek indirme.
 
 ---
@@ -83,8 +85,11 @@ Bu komut sunucuyu `http://localhost:3000` portunda, istemciyi ise Vite ile `http
 Projede otomatikleştirilmiş kapsamlı test süitleri yer almaktadır:
 
 ```bash
-# Tüm Vitest testlerini çalıştır (Erişim, Zehirleme, Biçimlendirme, API - 51 test)
+# Tüm Vitest testleri (94 test) ve çeviri dosyası denetimi
 npm test
+
+# Yalnızca çeviri dosyalarını denetle (eksik anahtar, yer tutucu, çoğul biçim)
+npm run check:i18n
 
 # 19 dilin biçimlendiricilerini smoke test ile doğrula
 npm run test:format
@@ -100,6 +105,35 @@ npm run backup
 ```
 
 ---
+
+## 🌍 Diller (i18n)
+
+Arayüz 14 dilde: `en` (kaynak), `tr`, `de`, `fr`, `es`, `it`, `pt-BR`, `ru`, `zh-CN`, `ja`, `ko`, `ar`, `hi`, `id`.
+
+**Dil nasıl seçilir?** Sırasıyla:
+1. Kullanıcının hesabına kaydettiği dil
+2. Bu tarayıcıda seçilen dil
+3. Tarayıcının dil ayarı
+4. İngilizce
+
+Dil, üst menüdeki seçiciden, giriş sayfasının köşesinden ve Hesabım → Görünüm'den değiştirilir. Öğrenciler hesap açmadığı için onların seçimi tarayıcıda saklanır.
+
+**Nasıl çalışır?**
+- **İstemci:** Metinler `client/src/i18n/locales/*.ts` dosyalarında. `en.ts` kaynaktır; diğer dosyalar TypeScript tipiyle ona bağlı olduğu için eksik anahtar derlemeyi bozar.
+  - Diller ayrı parçalar halinde, ihtiyaç olunca yüklenir.
+  - Çoğullar dilin kurallarına göre seçilir. Örneğin Rusçada 3 biçim, Arapçada 6 biçim vardır.
+  - Tarih, saat ve sayılar `Intl` ile biçimlendirilir.
+- **Sunucu:** Hata mesajları da çevrilir. Koddaki Türkçe metin anahtardır, çeviriler `server/src/i18n/catalog.ts` içindedir. İstemci her istekte `X-Locale` başlığını gönderir.
+- **Arapça (sağdan sola):** Sayfa yönü otomatik değişir. Kod alanları her zaman soldan sağa kalır.
+- **Yazı tipleri:** Latin dışı yazılarda (Kiril, Çince, Japonca, Korece, Arapça, Devanagari) arayüz cihazın sistem fontunu kullanır. Böylece megabaytlarca font indirilmez.
+
+**Yeni dil eklemek:**
+1. `shared/src/locales.ts` dosyasındaki `LOCALES` listesine dili ekleyin.
+2. `en.ts` dosyasını kopyalayıp çevirin.
+3. `server/src/i18n/catalog.ts` içinde `LANG_ORDER` listesine dili ekleyin ve her satıra çevirisini yazın.
+4. `npm test` çalıştırın. Testler eksik veya bozuk çeviriyi gösterir.
+
+**Çeviriler hakkında:** Çeviriler yapay zekâ ile hazırlandı ve otomatik olarak denetlendi (anahtarlar, yer tutucular, çoğullar). Yayına almadan önce her dili ana dili konuşan birine okutmanız önerilir. Özellikle kullanım koşulları metni hukuki açıdan her ülke için ayrıca incelenmeli.
 
 ## 🔒 Güvenlik Mimarisi
 

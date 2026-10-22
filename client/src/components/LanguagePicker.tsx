@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { LANGUAGES } from '@safecodeshare/shared';
+import { useI18n } from '../i18n';
+import { useLangLabel } from '../i18n/LocalePicker';
 
 type Props = {
   value: string;
@@ -9,6 +11,8 @@ type Props = {
 
 // Aranabilir dil seçici (spesifikasyon §8)
 export default function LanguagePicker({ value, onChange, disabled }: Props): JSX.Element {
+  const { t } = useI18n();
+  const langLabel = useLangLabel();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef<HTMLDivElement | null>(null);
@@ -19,8 +23,9 @@ export default function LanguagePicker({ value, onChange, disabled }: Props): JS
     const needle = q.trim().toLowerCase();
     if (!needle) return LANGUAGES;
     return LANGUAGES.filter(
-      (l) => l.label.toLowerCase().includes(needle) || l.id.toLowerCase().includes(needle)
+      (l) => langLabel(l.id).toLowerCase().includes(needle) || l.id.toLowerCase().includes(needle)
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
   useEffect(() => {
@@ -39,15 +44,15 @@ export default function LanguagePicker({ value, onChange, disabled }: Props): JS
         className="btn lang-picker-btn"
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
-        title="Dil seç"
+        title={t('langpicker.title')}
       >
-        {current?.label ?? value} <span aria-hidden>▾</span>
+        {current ? langLabel(current.id) : value} <span aria-hidden>▾</span>
       </button>
       {open && (
         <div className="lang-picker-menu" role="listbox">
           <input
             className="input"
-            placeholder="Dil ara…"
+            placeholder={t('langpicker.search')}
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -64,11 +69,11 @@ export default function LanguagePicker({ value, onChange, disabled }: Props): JS
                   setQ('');
                 }}
               >
-                <span>{l.label}</span>
+                <span>{langLabel(l.id)}</span>
                 <span className="muted">{l.extension}</span>
               </button>
             ))}
-            {filtered.length === 0 && <div className="muted" style={{ padding: 8 }}>Sonuç yok</div>}
+            {filtered.length === 0 && <div className="muted" style={{ padding: 8 }}>{t('common.noResults')}</div>}
           </div>
         </div>
       )}

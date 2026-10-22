@@ -114,7 +114,7 @@ export async function loadLanguage(id: string): Promise<Extension | null> {
   try {
     return await loader();
   } catch (err) {
-    console.warn(`[editor] dil yüklenemedi: ${id}`, err);
+    console.warn(`[editor] language failed to load: ${id}`, err);
     return null;
   }
 }

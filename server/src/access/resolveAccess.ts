@@ -6,7 +6,8 @@ export type AccessChannel = 'yjs' | 'protected';
 export type Access = {
   level: AccessLevel;
   channel: AccessChannel | null;
-  reason?: string;
+  reason?: string; // kaynak metin; yanıt verilirken isteğin diline çevrilir
+  availableAt?: number; // henüz yayınlanmamışsa: yayın zamanı (istemci kendi saat diliminde gösterir)
 };
 
 export type ResolveAccessSessionUser = {
@@ -49,13 +50,6 @@ function constantTimeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-function formatHHMM(ms: number): string {
-  const d = new Date(ms);
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  return `${hh}:${mm}`;
-}
-
 export function resolveAccess(pad: PadAccessRow | null | undefined, input: ResolveAccessInput): Access {
   // 1. Pad yoksa
   if (!pad) {
@@ -94,7 +88,8 @@ export function resolveAccess(pad: PadAccessRow | null | undefined, input: Resol
       return {
         level: 'none',
         channel: null,
-        reason: `Bu kod ${formatHHMM(pad.visible_from)}'de yayınlanacak`
+        reason: 'Bu kod henüz yayınlanmadı',
+        availableAt: pad.visible_from
       };
     }
     // 5b. Şifreli ve kilit açılmamış mı?

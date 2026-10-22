@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+// Boş bırakılan değişken (Render'da "" olabilir) tanımsız sayılır.
+const optionalText = z
+  .string()
+  .optional()
+  .transform((v) => (v && v.trim() ? v.trim() : undefined));
+
 // Ortam değişkenleri şeması
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -18,7 +24,19 @@ const EnvSchema = z.object({
   LOGIN_RATE_MAX: z.coerce.number().int().positive().default(10),
   UNLOCK_RATE_MAX: z.coerce.number().int().positive().default(20),
   FORMAT_RATE_MAX: z.coerce.number().int().positive().default(30),
-  REGISTER_RATE_MAX: z.coerce.number().int().positive().default(5)
+  REGISTER_RATE_MAX: z.coerce.number().int().positive().default(5),
+  // Lemon Squeezy (ödeme). Hepsi doluysa ödeme açılır; boşsa Pro elle verilir.
+  LEMONSQUEEZY_API_KEY: optionalText,
+  LEMONSQUEEZY_STORE_ID: optionalText,
+  LEMONSQUEEZY_WEBHOOK_SECRET: optionalText,
+  LEMONSQUEEZY_VARIANT_MONTHLY: optionalText,
+  LEMONSQUEEZY_VARIANT_YEARLY: optionalText,
+  // true: test modundaki satın alımlar da Pro verir (kurulumu denerken). Canlıda false bırakın.
+  LEMONSQUEEZY_TEST_MODE: z
+    .enum(['true', 'false', '1', '0'])
+    .default('false')
+    .transform((v) => v === 'true' || v === '1'),
+  LEMONSQUEEZY_API_URL: z.string().url().default('https://api.lemonsqueezy.com')
 });
 
 export type AppConfig = z.infer<typeof EnvSchema> & {

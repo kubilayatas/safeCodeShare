@@ -62,14 +62,15 @@ export function applyUiTheme(t: UiTheme): void {
   }
 }
 
-export function randomStudentName(): string {
+export function randomStudentName(prefix = 'Student'): string {
   const n = Math.floor(Math.random() * 9000) + 1000;
-  return `Öğrenci-${n}`;
+  return `${prefix}-${n}`;
 }
 
-export function ensureNickname(s: AppSettings): AppSettings {
+// prefix: kullanıcının dilinde "Öğrenci" / "Student" / "Élève"…
+export function ensureNickname(s: AppSettings, prefix?: string): AppSettings {
   if (s.nickname && s.nickname.trim().length > 0) return s;
-  const next: AppSettings = { ...s, nickname: randomStudentName() };
+  const next: AppSettings = { ...s, nickname: randomStudentName(prefix) };
   saveSettings(next);
   return next;
 }

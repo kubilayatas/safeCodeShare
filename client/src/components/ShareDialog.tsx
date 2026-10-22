@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { PadFull } from '@safecodeshare/shared';
-import { languageLabel } from '@safecodeshare/shared';
 import { apiFetch, ApiError } from '../api';
 import { useToast } from './Toast';
 import QrCode from './QrCode';
 import { can, useAccount } from '../account';
 import { LockChip } from './PlanBits';
+import { useI18n } from '../i18n';
+import { useLangLabel } from '../i18n/LocalePicker';
 
 type Props = {
   open: boolean;
@@ -41,6 +42,8 @@ export default function ShareDialog({
 }: Props): JSX.Element | null {
   const toast = useToast();
   const { entitlements: ent } = useAccount();
+  const { t } = useI18n();
+  const langLabel = useLangLabel();
   const [busy, setBusy] = useState(false);
   const [pwDraft, setPwDraft] = useState('');
   const [pwOpen, setPwOpen] = useState(false);
@@ -76,7 +79,7 @@ export default function ShareDialog({
       onPadChange(res.pad);
       if (successMsg) toast.show(successMsg, 'success');
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Güncelleme başarısız';
+      const msg = err instanceof ApiError ? err.message : t('share.updateFailed');
       toast.show(msg, 'error');
     } finally {
       setBusy(false);
@@ -85,7 +88,7 @@ export default function ShareDialog({
 
   async function rotate(which: 'edit' | 'view' | 'both', label: string): Promise<void> {
     if (busy) return;
-    if (!window.confirm(`${label} yenilenecek. Eski link çalışmayacak. Devam?`)) return;
+    if (!window.confirm(t('share.renewConfirm', { label }))) return;
     setBusy(true);
     try {
       const res = await apiFetch<{ pad: PadFull }>(`/api/pads/${pad.id}/rotate-tokens`, {
@@ -93,16 +96,16 @@ export default function ShareDialog({
         body: { which }
       });
       onPadChange(res.pad);
-      toast.show('Link yenilendi', 'success');
+      toast.show(t('share.renewed'), 'success');
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Yenileme başarısız';
+      const msg = err instanceof ApiError ? err.message : t('share.renewFailed');
       toast.show(msg, 'error');
     } finally {
       setBusy(false);
     }
   }
 
-  async function copy(text: string, label = 'Kopyalandı'): Promise<void> {
+  async function copy(text: string, label = t('common.copied')): Promise<void> {
     try {
       await navigator.clipboard.writeText(text);
       toast.show(label, 'success');
@@ -112,17 +115,17 @@ export default function ShareDialog({
   }
 
   function setExpiresPreset(p: ExpiresPreset): void {
-    if (p === 'never') void patch({ expiresAt: null }, 'Süre kaldırıldı');
-    else if (p === '1h') void patch({ expiresAt: Date.now() + 60 * 60 * 1000 }, 'Süre: 1 saat');
-    else if (p === '1d') void patch({ expiresAt: Date.now() + 24 * 60 * 60 * 1000 }, 'Süre: 1 gün');
-    else if (p === '1w') void patch({ expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 }, 'Süre: 1 hafta');
+    if (p === 'never') void patch({ expiresAt: null }, t('share.expiryRemoved'));
+    else if (p === '1h') void patch({ expiresAt: Date.now() + 60 * 60 * 1000 }, t('share.expirySet'));
+    else if (p === '1d') void patch({ expiresAt: Date.now() + 24 * 60 * 60 * 1000 }, t('share.expirySet'));
+    else if (p === '1w') void patch({ expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 }, t('share.expirySet'));
   }
 
   async function submitPassword(): Promise<void> {
     if (pwDraft.trim().length === 0) {
-      await patch({ password: null }, 'Şifre kaldırıldı');
+      await patch({ password: null }, t('share.passwordRemoved'));
     } else {
-      await patch({ password: pwDraft }, 'Şifre kaydedildi');
+      await patch({ password: pwDraft }, t('share.passwordSaved'));
     }
     setPwDraft('');
     setPwOpen(false);
@@ -132,8 +135,8 @@ export default function ShareDialog({
     <div className="modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="modal-card share-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>{pad.title} kodunu paylaş</h3>
-          <button className="icon-btn" onClick={onClose} title="Kapat">✕</button>
+          <h3>{t('share.title', { title: pad.title })}</h3>
+          <button className="icon-btn" onClick={onClose} title={t('common.close')} aria-label={t('common.close')}>✕</button>
         </div>
 
         {/* İzleme linki */}
@@ -144,16 +147,16 @@ export default function ShareDialog({
                 type="checkbox"
                 checked={pad.viewEnabled}
                 disabled={busy}
-                onChange={(e) => void patch({ viewEnabled: e.target.checked }, e.target.checked ? 'İzleme açıldı' : 'İzleme kapatıldı')}
+                onChange={(e) => void patch({ viewEnabled: e.target.checked }, t(e.target.checked ? 'share.viewEnabled' : 'share.viewDisabled'))}
               />
-              İzleme linki {pad.viewEnabled ? 'açık' : 'kapalı'}
+              {t(pad.viewEnabled ? 'share.viewOn' : 'share.viewOff')}
             </label>
           </div>
           <div className="share-link">
-            <input className="input" readOnly value={viewUrl} onFocus={(e) => e.target.select()} />
-            <button className="btn btn-sm" onClick={() => void copy(viewUrl, 'İzleme linki kopyalandı')}>Kopyala</button>
-            <button className="btn btn-sm" onClick={() => setQrOpen((v) => !v)}>{qrOpen ? 'QR gizle' : 'QR göster'}</button>
-            <button className="btn btn-sm" disabled={busy} onClick={() => void rotate('view', 'İzleme linki')}>Yenile</button>
+            <input className="input" dir="ltr" readOnly aria-label={t('share.viewOn')} value={viewUrl} onFocus={(e) => e.target.select()} />
+            <button className="btn btn-sm" onClick={() => void copy(viewUrl, t('share.viewCopied'))}>{t('common.copy')}</button>
+            <button className="btn btn-sm" onClick={() => setQrOpen((v) => !v)}>{t(qrOpen ? 'share.hideQr' : 'share.showQr')}</button>
+            <button className="btn btn-sm" disabled={busy} onClick={() => void rotate('view', t('share.viewLinkName'))}>{t('share.renew')}</button>
           </div>
 
           {qrOpen && (
@@ -166,33 +169,34 @@ export default function ShareDialog({
           <div className="share-subrow">
             {!pad.hasPassword && !can(ent, 'passwordShares') ? (
               <>
-                <button className="btn btn-sm" disabled>Şifre koy</button>
+                <button className="btn btn-sm" disabled>{t('share.setPassword')}</button>
                 <LockChip />
               </>
             ) : pad.hasPassword ? (
               <>
-                <span className="badge-inline">🔒 Şifreli</span>
-                <button className="btn btn-sm" disabled={busy} onClick={() => void patch({ password: null }, 'Şifre kaldırıldı')}>
-                  Şifreyi kaldır
+                <span className="badge-inline">{t('share.passwordProtected')}</span>
+                <button className="btn btn-sm" disabled={busy} onClick={() => void patch({ password: null }, t('share.passwordRemoved'))}>
+                  {t('share.removePassword')}
                 </button>
               </>
             ) : (
               <>
                 {!pwOpen ? (
-                  <button className="btn btn-sm" onClick={() => setPwOpen(true)}>Şifre koy</button>
+                  <button className="btn btn-sm" onClick={() => setPwOpen(true)}>{t('share.setPassword')}</button>
                 ) : (
                   <div className="share-pw-form">
                     <input
                       className="input"
                       type="password"
-                      placeholder="Yeni şifre"
+                      placeholder={t('share.newPassword')}
+                      aria-label={t('share.newPassword')}
                       value={pwDraft}
                       onChange={(e) => setPwDraft(e.target.value)}
                     />
                     <button className="btn btn-sm btn-primary" disabled={busy} onClick={() => void submitPassword()}>
-                      Kaydet
+                      {t('common.save')}
                     </button>
-                    <button className="btn btn-sm" onClick={() => { setPwOpen(false); setPwDraft(''); }}>Vazgeç</button>
+                    <button className="btn btn-sm" onClick={() => { setPwOpen(false); setPwDraft(''); }}>{t('common.cancel')}</button>
                   </div>
                 )}
               </>
@@ -201,7 +205,7 @@ export default function ShareDialog({
 
           {/* Görünürlük */}
           <div className="share-subrow">
-            <label className="muted" htmlFor="share-visible-from">Şu tarihten itibaren görünür:</label>
+            <label className="muted" htmlFor="share-visible-from">{t('share.visibleFrom')}</label>
             <input
               id="share-visible-from"
               className="input"
@@ -211,7 +215,7 @@ export default function ShareDialog({
               onChange={(e) => void patch({ visibleFrom: fromDatetimeLocalValue(e.target.value) })}
             />
             {pad.visibleFrom != null && (
-              <button className="btn btn-sm" onClick={() => void patch({ visibleFrom: null })}>Kaldır</button>
+              <button className="btn btn-sm" onClick={() => void patch({ visibleFrom: null })}>{t('share.remove')}</button>
             )}
             {!can(ent, 'scheduledShares') && <LockChip />}
           </div>
@@ -227,22 +231,22 @@ export default function ShareDialog({
                 disabled={busy || (!pad.editEnabled && !can(ent, 'editLinks'))}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    if (!window.confirm('Bu linke sahip herkes kodu değiştirebilir. Emin misiniz?')) return;
+                    if (!window.confirm(t('share.editConfirm'))) return;
                   }
-                  void patch({ editEnabled: e.target.checked }, e.target.checked ? 'Düzenleme açıldı' : 'Düzenleme kapatıldı');
+                  void patch({ editEnabled: e.target.checked }, t(e.target.checked ? 'share.editEnabled' : 'share.editDisabled'));
                 }}
               />
-              ✏️ Düzenleme linki {pad.editEnabled ? 'açık' : 'kapalı'}
+              {t(pad.editEnabled ? 'share.editOn' : 'share.editOff')}
             </label>
             {!pad.editEnabled && !can(ent, 'editLinks') && <LockChip />}
           </div>
           {pad.editEnabled && (
             <>
-              <p className="share-warn">⚠️ Bu linke sahip herkes kodu değiştirebilir.</p>
+              <p className="share-warn">{t('share.editWarn')}</p>
               <div className="share-link">
-                <input className="input" readOnly value={editUrl} onFocus={(e) => e.target.select()} />
-                <button className="btn btn-sm" onClick={() => void copy(editUrl, 'Düzenleme linki kopyalandı')}>Kopyala</button>
-                <button className="btn btn-sm" disabled={busy} onClick={() => void rotate('edit', 'Düzenleme linki')}>Yenile</button>
+                <input className="input" dir="ltr" readOnly aria-label={t('share.editOn')} value={editUrl} onFocus={(e) => e.target.select()} />
+                <button className="btn btn-sm" onClick={() => void copy(editUrl, t('share.editCopied'))}>{t('common.copy')}</button>
+                <button className="btn btn-sm" disabled={busy} onClick={() => void rotate('edit', t('share.editLinkName'))}>{t('share.renew')}</button>
               </div>
             </>
           )}
@@ -255,18 +259,17 @@ export default function ShareDialog({
               type="checkbox"
               checked={pad.copyProtect}
               disabled={busy || (!pad.copyProtect && !can(ent, 'copyProtect'))}
-              onChange={(e) => void patch({ copyProtect: e.target.checked }, e.target.checked ? 'Kopyalama koruması açıldı' : 'Kopyalama koruması kapatıldı')}
+              onChange={(e) => void patch({ copyProtect: e.target.checked }, t(e.target.checked ? 'share.copyProtectOn' : 'share.copyProtectOff'))}
             />
-            🛡 Kopyalama koruması
+            {t('share.copyProtect')}
           </label>
           {!pad.copyProtect && !can(ent, 'copyProtect') && <LockChip />}
           <p className="share-help">
-            Öğrenciler kodu görür ama seçemez, kopyalayamaz, indiremez. Kopyalamayı başarsalar bile
-            yapıştırılan kod çalışmaz. Düzenleme linkiyle girenler kodun temiz halini görür.
+            {t('share.copyProtectHelp')}
           </p>
 
           <div className="share-subrow" style={{ marginTop: 12 }}>
-            <span className="share-toggle" id="ocr-label">🤖 AI/OCR koruması</span>
+            <span className="share-toggle" id="ocr-label">{t('share.ocr')}</span>
             <div className="segmented" role="group" aria-labelledby="ocr-label">
               {([0, 1, 2] as const).map((lvl) => (
                 <button
@@ -277,21 +280,19 @@ export default function ShareDialog({
                   onClick={() =>
                     void patch(
                       { ocrProtect: lvl },
-                      lvl === 0 ? 'AI/OCR koruması kapatıldı' : `AI/OCR koruması: ${lvl === 1 ? 'hafif' : 'güçlü'}`
+                      t(lvl === 0 ? 'share.ocrSetOff' : lvl === 1 ? 'share.ocrSetLight' : 'share.ocrSetStrong')
                     )
                   }
                 >
-                  {lvl === 0 ? 'Kapalı' : lvl === 1 ? 'Hafif' : 'Güçlü'}
+                  {t(lvl === 0 ? 'share.ocrOff' : lvl === 1 ? 'share.ocrLight' : 'share.ocrStrong')}
                 </button>
               ))}
             </div>
             {!can(ent, 'ocrProtect') && <LockChip />}
           </div>
           <p className="share-help">
-            Kodun boşluklarına göze batmayan soluk sahte karakterler eklenir. Öğrenci ekranın fotoğrafını
-            çekip yapay zekâya veya metin tanıma uygulamasına okutursa bu karakterler de okunur ve kod
-            bozuk çıkar. Güçlü seviye kelime aralarına da karakter ekler; okunabilirliği biraz azaltır.
-            {!pad.copyProtect && ' Önce kopyalama korumasını aç.'}
+            {t('share.ocrHelp')}
+            {!pad.copyProtect && <> <b>{t('share.ocrNeedsCopy')}</b></>}
           </p>
         </section>
 
@@ -302,28 +303,29 @@ export default function ShareDialog({
               type="checkbox"
               checked={pad.visibleInCourse}
               disabled={busy}
-              onChange={(e) => void patch({ visibleInCourse: e.target.checked }, e.target.checked ? 'Ders sayfasında görünecek' : 'Ders sayfasında gizlendi')}
+              onChange={(e) => void patch({ visibleInCourse: e.target.checked }, t(e.target.checked ? 'share.shownInCourse' : 'share.hiddenInCourse'))}
             />
-            📚 Ders sayfasında göster
+            {t('share.showInCourse')}
           </label>
         </section>
 
         {/* Son geçerlilik */}
         <section className="share-section">
           <div className="share-row">
-            <span className="muted">Son geçerlilik:</span>
+            <label className="muted" htmlFor="share-expiry">{t('share.expiry')}</label>
             <select
+              id="share-expiry"
               className="select"
               style={{ width: 'auto' }}
               value={expiresPreset}
               disabled={busy || (!can(ent, 'scheduledShares') && pad.expiresAt == null)}
               onChange={(e) => setExpiresPreset(e.target.value as ExpiresPreset)}
             >
-              <option value="never">Süresiz</option>
-              <option value="1h">1 saat</option>
-              <option value="1d">1 gün</option>
-              <option value="1w">1 hafta</option>
-              <option value="custom">Özel tarih…</option>
+              <option value="never">{t('share.never')}</option>
+              <option value="1h">{t('share.1h')}</option>
+              <option value="1d">{t('share.1d')}</option>
+              <option value="1w">{t('share.1w')}</option>
+              <option value="custom">{t('share.custom')}</option>
             </select>
             {!can(ent, 'scheduledShares') && <LockChip />}
           </div>
@@ -337,7 +339,7 @@ export default function ShareDialog({
                 onChange={(e) => void patch({ expiresAt: fromDatetimeLocalValue(e.target.value) })}
               />
               {pad.expiresAt != null && (
-                <button className="btn btn-sm" onClick={() => void patch({ expiresAt: null })}>Kaldır</button>
+                <button className="btn btn-sm" onClick={() => void patch({ expiresAt: null })}>{t('share.remove')}</button>
               )}
             </div>
           )}
@@ -346,25 +348,25 @@ export default function ShareDialog({
         {/* Gömme kodu */}
         <section className="share-section">
           <div className="share-row">
-            <span className="muted">Başka bir siteye gömme kodu (iframe):</span>
+            <span className="muted">{t('share.embed')}</span>
             {!can(ent, 'embed') && <LockChip />}
           </div>
           {can(ent, 'embed') ? (
             <div className="share-link">
-              <input className="input" readOnly value={embedCode} onFocus={(e) => e.target.select()} />
-              <button className="btn btn-sm" onClick={() => void copy(embedCode, 'Gömme kodu kopyalandı')}>Kopyala</button>
+              <input className="input" dir="ltr" readOnly aria-label={t('share.embed')} value={embedCode} onFocus={(e) => e.target.select()} />
+              <button className="btn btn-sm" onClick={() => void copy(embedCode, t('share.embedCopied'))}>{t('common.copy')}</button>
             </div>
           ) : (
-            <p className="share-help">Planında gömme yok; kod başka sitelerin içinde açılmaz.</p>
+            <p className="share-help">{t('share.embedLocked')}</p>
           )}
         </section>
 
         <div className="modal-actions">
-          <button className="btn" onClick={onClose}>Kapat</button>
+          <button className="btn" onClick={onClose}>{t('common.close')}</button>
         </div>
 
         <div className="sr-only" aria-live="polite">
-          Dil: {languageLabel(pad.language)}
+          {langLabel(pad.language)}
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { apiFetch, ApiError } from '../api';
 import Editor from '../components/Editor';
 import ProtectedCodeView from '../components/ProtectedCodeView';
 import { loadSettings, type AppSettings } from '../editor/settings';
+import { useI18n } from '../i18n';
 
 type LoadError = { code: string; message: string; requiresPassword: boolean };
 
@@ -15,6 +16,7 @@ export default function Embed(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<LoadError | null>(null);
   const [settings] = useState<AppSettings>(() => loadSettings());
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!viewToken) return;
@@ -32,7 +34,7 @@ export default function Embed(): JSX.Element {
             requiresPassword: err.code === 'PASSWORD_REQUIRED'
           });
         } else {
-          setError({ code: 'UNKNOWN', message: 'Yüklenemedi', requiresPassword: false });
+          setError({ code: 'UNKNOWN', message: t('view.loadFailed'), requiresPassword: false });
         }
       })
       .finally(() => {
@@ -55,8 +57,8 @@ export default function Embed(): JSX.Element {
     return (
       <div className="embed-root embed-error">
         {error?.requiresPassword
-          ? 'Bu kod şifreli. Tam görünümde açın.'
-          : error?.message ?? 'Kod bulunamadı.'}
+          ? t('embed.password')
+          : error?.message ?? t('embed.notFound')}
       </div>
     );
   }
@@ -71,7 +73,7 @@ export default function Embed(): JSX.Element {
           target="_blank"
           rel="noopener noreferrer"
         >
-          Tam ekran aç ↗
+          {t('embed.openFull')}
         </a>
       </div>
       <div className="embed-body">
@@ -91,7 +93,7 @@ export default function Embed(): JSX.Element {
             readOnly
             initialLanguage={info.language}
             settings={settings}
-            displayName="İzleyici"
+            displayName={t('view.viewer')}
             displayColor="#888"
             role="viewer"
             themeClass={settings.theme}

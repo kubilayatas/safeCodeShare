@@ -65,7 +65,7 @@ export default function ReadOnlyCodeView({
   }, [code, language, fontSize, lineWrapping]);
 
   return (
-    <div className={`editor-shell theme-${theme}`} style={{ height: '100%' }}>
+    <div className={`editor-shell theme-${theme}`} style={{ height: '100%' }} dir="ltr">
       <div ref={ref} className="editor-mount" />
     </div>
   );

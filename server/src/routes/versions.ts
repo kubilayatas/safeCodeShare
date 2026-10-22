@@ -18,6 +18,7 @@ import { notifyAccessChange } from '../collab/accessNotify';
 import type { PadRow } from '../util/rows';
 import { safeFilename } from '../util/filename';
 import { getEntitlements } from '../account/entitlements';
+import { pickLocale, tReq } from '../i18n';
 
 type VersionRow = {
   id: number;
@@ -194,7 +195,7 @@ export function versionsRouter(db: DB): Router {
         access.content_text,
         access.ydoc ?? Buffer.alloc(0),
         access.language,
-        'Geri yükleme öncesi',
+        tReq(req, 'Geri yükleme öncesi'),
         createdBy,
         now
       );
@@ -249,7 +250,8 @@ export function versionsRouter(db: DB): Router {
     const now = Date.now();
     const editToken = newEditToken();
     const viewToken = newViewToken();
-    const newTitle = `${access.title} — sürüm ${new Date(v.created_at).toLocaleString('tr-TR')}`.slice(
+    const when = new Intl.DateTimeFormat(pickLocale(req), { dateStyle: 'medium', timeStyle: 'short' }).format(v.created_at);
+    const newTitle = tReq(req, '{title} — sürüm {date}', { title: access.title, date: when }).slice(
       0,
       120
     );

@@ -13,7 +13,8 @@
 [data-theme='light'],
 .pad-page.theme-notepad,
 .embed-root.theme-notepad,
-.history-page.theme-notepad {
+.history-page.theme-notepad,
+.course-page.theme-notepad {
   --bg: #fafbfa;
   --bg-alt: #eef2f0;
   --bg-elev: #ffffff;
@@ -50,7 +51,8 @@
 .embed-root.theme-monokai,
 .embed-root.theme-onedark,
 .history-page.theme-monokai,
-.history-page.theme-onedark {
+.history-page.theme-onedark,
+.course-page.theme-onedark {
   --bg: #111916;
   --bg-alt: #17211e;
   --bg-elev: #1c2825;
@@ -131,6 +133,26 @@
   --border: #3a404b;
   --border-strong: #6b7383;
   --accent-soft: #2c3a3a;
+}
+
+/* Atkinson Hyperlegible yalnızca Latin alfabesini kapsar. Kiril, Arap, Devanagari,
+   Çin/Japon/Kore yazıları için sistemin o yazıya uygun yazı tipine geçilir;
+   karışık yazı tipiyle "yamalı" görünmesin diye tümüyle değiştirilir. */
+html:lang(ru),
+html:lang(zh-CN),
+html:lang(ja),
+html:lang(ko),
+html:lang(ar),
+html:lang(hi) {
+  --font-ui: system-ui, -apple-system, 'Segoe UI', 'Noto Sans', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+:lang(ar) body {
+  line-height: 1.65;
+}
+:lang(zh-CN) body,
+:lang(ja) body,
+:lang(ko) body {
+  line-height: 1.6;
 }
 
 :root {
@@ -451,7 +473,7 @@ input[type='range'] {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-left: 6px;
+  margin-inline-start: 6px;
   padding: 1px 8px;
   border-radius: var(--radius-pill);
   font-size: 12px;
@@ -536,8 +558,8 @@ input[type='range'] {
   line-height: 1.7;
   color: #eef5f1;
   white-space: pre;
-  border-left: 3px solid #f2c14e;
-  padding-left: 16px;
+  border-inline-start: 3px solid #f2c14e;
+  padding-inline-start: 16px;
 }
 .chalk-code .ck {
   color: #f2c14e;
@@ -546,6 +568,7 @@ input[type='range'] {
   color: #a9c7ba;
 }
 .login-main {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -554,6 +577,26 @@ input[type='range'] {
 .login-card {
   width: 100%;
   max-width: 400px;
+}
+.login-locale {
+  position: absolute;
+  top: 16px;
+  inset-inline-end: 16px;
+}
+.locale-picker {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.locale-picker > label {
+  font-size: 14px;
+  font-weight: 700;
+}
+.locale-picker.compact .select {
+  width: auto;
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 13px;
 }
 .login-title {
   font-size: 26px;
@@ -571,7 +614,7 @@ input[type='range'] {
 }
 .honeypot {
   position: absolute;
-  left: -10000px;
+  inset-inline-start: -10000px;
   width: 1px;
   height: 1px;
   overflow: hidden;
@@ -782,6 +825,61 @@ input[type='range'] {
   font-size: 15px;
   margin: 0 0 14px;
 }
+
+/* Ödeme */
+.price-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 14px;
+}
+.price-lines .price {
+  font-size: 17px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.save-chip {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success);
+}
+.plan-cta {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.buy-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.buy-row .btn {
+  flex: 1 1 160px;
+}
+.billing-box {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-top: 14px;
+  background: var(--bg-sunken);
+}
+.billing-box.warn {
+  background: var(--warn-soft);
+  border-color: var(--chalk);
+}
+.billing-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
 .prose {
   max-width: 68ch;
 }
@@ -810,7 +908,7 @@ input[type='range'] {
 .data-table td,
 .admin-table th,
 .admin-table td {
-  text-align: left;
+  text-align: start;
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
@@ -869,7 +967,7 @@ input[type='range'] {
   overflow-y: auto;
   background: var(--bg);
   color: var(--fg);
-  border-left: 1px solid var(--border);
+  border-inline-start: 1px solid var(--border);
   padding: 20px;
 }
 .drawer-head {
@@ -907,7 +1005,7 @@ input[type='range'] {
   background: var(--bg);
 }
 .dash-side {
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
   background: var(--bg-alt);
   padding: 16px;
   overflow-y: auto;
@@ -974,7 +1072,7 @@ input[type='range'] {
     grid-template-columns: 1fr;
   }
   .dash-side {
-    border-right: none;
+    border-inline-end: none;
     border-bottom: 1px solid var(--border);
   }
 }
@@ -1007,14 +1105,17 @@ input[type='range'] {
   background: var(--accent-soft);
   box-shadow: inset 3px 0 0 var(--accent);
 }
+[dir='rtl'] .tree-row.selected {
+  box-shadow: inset -3px 0 0 var(--accent);
+}
 .tree-row-course {
   font-weight: 700;
 }
 .tree-row-topic {
-  padding-left: 14px;
+  padding-inline-start: 14px;
 }
 .tree-row-pad {
-  padding-left: 30px;
+  padding-inline-start: 30px;
 }
 .tree-row-label {
   padding: 4px 6px 4px 30px;
@@ -1058,7 +1159,7 @@ input[type='range'] {
 }
 .node-menu-pop {
   position: absolute;
-  right: 0;
+  inset-inline-end: 0;
   top: 100%;
   z-index: 50;
   background: var(--bg-elev);
@@ -1075,7 +1176,7 @@ input[type='range'] {
   background: none;
   border: none;
   padding: 7px 10px;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
   font-size: 14px;
   border-radius: var(--radius-sm);
@@ -1201,7 +1302,7 @@ input[type='range'] {
 .lang-picker-menu {
   position: absolute;
   top: 100%;
-  left: 0;
+  inset-inline-start: 0;
   min-width: 240px;
   margin-top: 4px;
   background: var(--bg-elev);
@@ -1226,7 +1327,7 @@ input[type='range'] {
   padding: 7px 10px;
   background: none;
   border: none;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
   border-radius: var(--radius-sm);
   font-size: 14px;
@@ -1243,7 +1344,7 @@ input[type='range'] {
 /* Bildirimler */
 .toast-stack {
   position: fixed;
-  right: 16px;
+  inset-inline-end: 16px;
   bottom: 16px;
   display: flex;
   flex-direction: column;
@@ -1257,16 +1358,16 @@ input[type='range'] {
   background: var(--bg-elev);
   color: var(--fg);
   border: 1px solid var(--border-strong);
-  border-left-width: 4px;
+  border-inline-start-width: 4px;
   box-shadow: var(--shadow);
   animation: toast-in 0.18s ease-out;
   font-size: 14px;
 }
 .toast.success {
-  border-left-color: var(--success);
+  border-inline-start-color: var(--success);
 }
 .toast.error {
-  border-left-color: var(--danger);
+  border-inline-start-color: var(--danger);
   background: var(--danger-soft);
   color: var(--fg);
 }
@@ -1305,7 +1406,7 @@ input[type='range'] {
   max-width: 420px;
   width: 100%;
   box-shadow: var(--shadow);
-  text-align: left;
+  text-align: start;
 }
 
 /* =====================================================================
@@ -1415,6 +1516,15 @@ input[type='range'] {
   font-size: 13px;
   font-family: var(--font-mono);
 }
+/* Kod fontu yalnızca Latin harflerini içerir; diğer yazı sistemlerinde durum çubuğu arayüz fontunu kullanır. */
+html:lang(ru) .statusbar,
+html:lang(zh-CN) .statusbar,
+html:lang(ja) .statusbar,
+html:lang(ko) .statusbar,
+html:lang(ar) .statusbar,
+html:lang(hi) .statusbar {
+  font-family: var(--font-ui);
+}
 .sb-item {
   white-space: nowrap;
 }
@@ -1510,7 +1620,7 @@ input[type='range'] {
 .settings-foot {
   padding: 12px 16px;
   border-top: 1px solid var(--border);
-  text-align: right;
+  text-align: end;
 }
 
 /* İzleyici bandı */
@@ -1541,7 +1651,7 @@ input[type='range'] {
 .presentation-exit {
   position: fixed;
   top: 12px;
-  right: 12px;
+  inset-inline-end: 12px;
   z-index: 9999;
   padding: 8px 14px;
   border-radius: var(--radius-sm);
@@ -1677,7 +1787,7 @@ kbd {
   cursor: pointer;
 }
 .segmented button + button {
-  border-left: 1px solid var(--border-strong);
+  border-inline-start: 1px solid var(--border-strong);
 }
 .segmented button[aria-pressed='true'] {
   background: var(--accent);
@@ -1744,8 +1854,8 @@ kbd {
 .p-gutter {
   width: 52px;
   flex-shrink: 0;
-  text-align: right;
-  padding-right: 12px;
+  text-align: end;
+  padding-inline-end: 12px;
   color: var(--ed-gutter-fg);
   background: var(--ed-gutter-bg);
   user-select: none;
@@ -1755,7 +1865,7 @@ kbd {
   min-width: 0;
   white-space: pre;
   position: relative;
-  padding-left: 6px;
+  padding-inline-start: 6px;
 }
 .p-content.p-wrap {
   white-space: pre-wrap;
@@ -1781,7 +1891,7 @@ kbd {
 .p-cursor-label {
   position: absolute;
   bottom: 100%;
-  left: 0;
+  inset-inline-start: 0;
   font-size: 12px;
   line-height: 1.4;
   font-family: var(--font-ui);
@@ -1793,7 +1903,7 @@ kbd {
 }
 .follow-resume {
   position: absolute;
-  right: 14px;
+  inset-inline-end: 14px;
   bottom: 14px;
   z-index: 10;
   padding: 9px 16px;
@@ -1813,7 +1923,7 @@ kbd {
   }
   .pad-page::after {
     display: block;
-    content: 'Yazdırma bu kod için kapalı';
+    content: attr(data-print-msg);
     font-size: 18px;
     padding: 40px;
     text-align: center;
@@ -1972,7 +2082,7 @@ kbd {
   grid-template-columns: 300px 1fr;
 }
 .history-list {
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
   overflow-y: auto;
   background: var(--bg-alt);
   padding: 8px;
@@ -1985,7 +2095,7 @@ kbd {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  text-align: left;
+  text-align: start;
   width: 100%;
   padding: 9px 10px;
   border-radius: var(--radius-sm);
@@ -2042,7 +2152,7 @@ kbd {
     grid-template-rows: 200px 1fr;
   }
   .history-list {
-    border-right: none;
+    border-inline-end: none;
     border-bottom: 1px solid var(--border);
   }
 }

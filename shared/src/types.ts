@@ -1,5 +1,6 @@
 // İstemci ve sunucu arasında paylaşılan API tipleri
-import type { Entitlements, PlanId, PlanLimits, Usage, UserStatus } from './plans';
+import type { BillingInfo, Entitlements, PlanId, PlanLimits, Usage, UserStatus } from './plans';
+import type { LocaleCode } from './locales';
 
 export type Role = 'admin' | 'teacher';
 
@@ -12,6 +13,7 @@ export type PublicUser = {
   plan: PlanId;
   planExpiresAt: number | null;
   status: UserStatus;
+  locale: LocaleCode | null; // arayüz dili tercihi (cihazlar arası taşınır)
 };
 
 export type MeResponse = { user: PublicUser; entitlements: Entitlements };
@@ -24,6 +26,7 @@ export type AdminUser = PublicUser & {
   signupSource: 'admin' | 'self';
   adminNote: string;
   limitsOverride: Partial<PlanLimits> | null;
+  billing: (BillingInfo & { subscriptionId: string }) | null;
 };
 
 export type AdminStats = {

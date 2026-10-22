@@ -28,3 +28,16 @@ services:
         sync: false
       - key: ADMIN_NAME
         value: Öğretmen
+      # Ödeme (Lemon Squeezy). Ayrıntılar: ODEME.md. Boş bırakılırsa ödeme kapalı kalır.
+      - key: LEMONSQUEEZY_API_KEY
+        sync: false
+      - key: LEMONSQUEEZY_STORE_ID
+        sync: false
+      - key: LEMONSQUEEZY_WEBHOOK_SECRET
+        sync: false
+      - key: LEMONSQUEEZY_VARIANT_MONTHLY
+        sync: false
+      - key: LEMONSQUEEZY_VARIANT_YEARLY
+        sync: false
+      - key: LEMONSQUEEZY_TEST_MODE
+        value: "false"

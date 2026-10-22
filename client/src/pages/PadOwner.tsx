@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { PadFull } from '@safecodeshare/shared';
-import { languageLabel } from '@safecodeshare/shared';
 import { apiFetch, ApiError, formatCode } from '../api';
 import type { FormatError } from '../api';
 import { useToast } from '../components/Toast';
@@ -22,6 +21,8 @@ import StatusBar from '../components/StatusBar';
 import Toolbar from '../components/Toolbar';
 import { applyFormatted } from '../editor/applyFormatted';
 import { can, useAccount } from '../account';
+import { useI18n } from '../i18n';
+import { useLangLabel } from '../i18n/LocalePicker';
 import { createBroadcastController, type BroadcastController } from '../editor/follow';
 import {
   colorForName,
@@ -44,6 +45,8 @@ export default function PadOwner(): JSX.Element {
   const [searchParams] = useSearchParams();
   const toast = useToast();
   const { entitlements: ent } = useAccount();
+  const { t } = useI18n();
+  const langLabel = useLangLabel();
   const canBeautify = can(ent, 'beautify');
   const canHistory = can(ent, 'versionHistory');
 
@@ -70,7 +73,7 @@ export default function PadOwner(): JSX.Element {
 
   const nickname = useMemo(
     () =>
-      settings.nickname && settings.nickname.trim().length > 0 ? settings.nickname : 'Öğretmen',
+      settings.nickname && settings.nickname.trim().length > 0 ? settings.nickname : t('view.teacher'),
     [settings.nickname]
   );
   const color = useMemo(() => colorForName(nickname), [nickname]);
@@ -87,7 +90,7 @@ export default function PadOwner(): JSX.Element {
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof ApiError ? err.message : 'Kod yüklenemedi');
+        setError(err instanceof ApiError ? err.message : t('pad.loadFailed'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -117,29 +120,29 @@ export default function PadOwner(): JSX.Element {
     if (ctrl.isEnabled()) {
       ctrl.disable();
       setBroadcasting(false);
-      toast.show('Yayın kapatıldı', 'info');
+      toast.show(t('pad.broadcastStopped'), 'info');
     } else {
       ctrl.enable();
       setBroadcasting(true);
-      toast.show('Yayın açık — izleyiciler imlecinizi takip ediyor', 'success');
+      toast.show(t('pad.broadcastStarted'), 'success');
     }
   }, [toast]);
 
   const saveVersion = useCallback(async (): Promise<void> => {
     if (!pad) return;
     if (!canHistory) {
-      toast.show('Sürüm kaydetme Pro planda', 'info');
+      toast.show(t('pad.versionLocked'), 'info');
       return;
     }
-    const label = window.prompt('Sürüm etiketi (boş bırakılabilir):', '') ?? '';
+    const label = window.prompt(t('pad.versionPrompt'), '') ?? '';
     try {
       await apiFetch(`/api/pads/${pad.id}/versions`, {
         method: 'POST',
         body: label.trim().length > 0 ? { label: label.trim() } : {}
       });
-      toast.show('Sürüm kaydedildi', 'success');
+      toast.show(t('pad.versionSaved'), 'success');
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Sürüm kaydedilemedi';
+      const msg = err instanceof ApiError ? err.message : t('pad.versionFailed');
       toast.show(msg, 'error');
     }
   }, [pad, toast, canHistory]);
@@ -196,9 +199,9 @@ export default function PadOwner(): JSX.Element {
           body: { language }
         });
         setPad(res.pad);
-        toast.show('Dil güncellendi', 'success');
+        toast.show(t('pad.languageChanged'), 'success');
       } catch (err) {
-        const msg = err instanceof ApiError ? err.message : 'Dil değiştirilemedi';
+        const msg = err instanceof ApiError ? err.message : t('pad.languageFailed');
         toast.show(msg, 'error');
       }
     },
@@ -209,7 +212,7 @@ export default function PadOwner(): JSX.Element {
     if (!ctx || !pad) return;
     if (beautifying) return;
     if (!canBeautify) {
-      toast.show('Kod biçimlendirme planında yok', 'info');
+      toast.show(t('pad.formatLocked'), 'info');
       return;
     }
     setBeautifying(true);
@@ -221,15 +224,17 @@ export default function PadOwner(): JSX.Element {
         useTabs: settings.useTabs
       });
       const applied = applyFormatted(ctx.view, res.code);
-      toast.show(applied ? 'Kod biçimlendirildi' : 'Zaten biçimli', 'success');
+      toast.show(t(applied ? 'pad.formatted' : 'pad.alreadyFormatted'), 'success');
     } catch (err) {
       const fmtErr = err as FormatError;
       if (fmtErr.status === 422) {
-        const posInfo =
-          fmtErr.line != null
-            ? ` (satır ${fmtErr.line}${fmtErr.column != null ? `, sütun ${fmtErr.column}` : ''})`
-            : '';
-        toast.show(`${fmtErr.message}${posInfo}`, 'error');
+        const message =
+          fmtErr.line == null
+            ? fmtErr.message
+            : fmtErr.column != null
+              ? t('pad.formatAtLineCol', { message: fmtErr.message, line: fmtErr.line, col: fmtErr.column })
+              : t('pad.formatAtLine', { message: fmtErr.message, line: fmtErr.line });
+        toast.show(message, 'error');
         if (fmtErr.line != null) {
           try {
             const line = ctx.view.state.doc.line(fmtErr.line);
@@ -244,7 +249,7 @@ export default function PadOwner(): JSX.Element {
           }
         }
       } else {
-        toast.show(err instanceof Error ? err.message : 'Biçimlendirme başarısız', 'error');
+        toast.show(err instanceof Error ? err.message : t('pad.formatFailed'), 'error');
       }
     } finally {
       setBeautifying(false);
@@ -253,8 +258,8 @@ export default function PadOwner(): JSX.Element {
 
   async function saveTitle(): Promise<void> {
     if (!pad) return;
-    const t = titleDraft.trim();
-    if (t.length === 0 || t === pad.title) {
+    const nextTitle = titleDraft.trim();
+    if (nextTitle.length === 0 || nextTitle === pad.title) {
       setTitleEdit(false);
       setTitleDraft(pad.title);
       return;
@@ -262,13 +267,13 @@ export default function PadOwner(): JSX.Element {
     try {
       const res = await apiFetch<{ pad: PadFull }>(`/api/pads/${pad.id}`, {
         method: 'PATCH',
-        body: { title: t }
+        body: { title: nextTitle }
       });
       setPad(res.pad);
       setTitleEdit(false);
-      toast.show('Başlık güncellendi', 'success');
+      toast.show(t('pad.titleSaved'), 'success');
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Başlık kaydedilemedi';
+      const msg = err instanceof ApiError ? err.message : t('pad.titleFailed');
       toast.show(msg, 'error');
     }
   }
@@ -277,9 +282,9 @@ export default function PadOwner(): JSX.Element {
     if (!ctx) return;
     try {
       await navigator.clipboard.writeText(ctx.getText());
-      toast.show('Kod kopyalandı', 'success');
+      toast.show(t('pad.codeCopied'), 'success');
     } catch {
-      toast.show('Kopyalanamadı', 'error');
+      toast.show(t('common.copyFailed'), 'error');
     }
   }
 
@@ -305,9 +310,9 @@ export default function PadOwner(): JSX.Element {
   if (error || !pad) {
     return (
       <div className="error-page">
-        <h2>Hata</h2>
-        <p>{error ?? 'Kod bulunamadı'}</p>
-        <button className="btn" onClick={() => navigate('/dashboard')}>Panele dön</button>
+        <h2>{t('common.error')}</h2>
+        <p>{error ?? t('pad.notFound')}</p>
+        <button className="btn" onClick={() => navigate('/dashboard')}>{t('pad.backToDashboard')}</button>
       </div>
     );
   }
@@ -320,7 +325,7 @@ export default function PadOwner(): JSX.Element {
         <Toolbar
           left={
             <>
-              <button className="btn btn-sm" onClick={() => navigate('/dashboard')}>← Panel</button>
+              <button className="btn btn-sm" onClick={() => navigate('/dashboard')}>{t('pad.back')}</button>
               {titleEdit ? (
                 <input
                   className="input pad-title-input"
@@ -338,7 +343,7 @@ export default function PadOwner(): JSX.Element {
                   }}
                 />
               ) : (
-                <button className="btn btn-sm" onClick={() => setTitleEdit(true)} title="Başlığı düzenle">
+                <button className="btn btn-sm" onClick={() => setTitleEdit(true)} title={t('pad.editTitle')}>
                   {pad.title} ✎
                 </button>
               )}
@@ -351,26 +356,27 @@ export default function PadOwner(): JSX.Element {
                 className="btn btn-sm"
                 onClick={() => void runBeautify()}
                 disabled={beautifying || !ctx || !canBeautify}
-                title={canBeautify ? 'Kodu biçimlendir (Ctrl+Alt+F)' : 'Planında kod biçimlendirme yok'}
+                title={t(canBeautify ? 'pad.formatTitle' : 'pad.formatLocked')}
               >
-                {beautifying ? '✨ …' : '✨ Biçimlendir'}
+                {t(beautifying ? 'pad.formatting' : 'pad.format')}
               </button>
             </>
           }
           right={
             <>
-              <button className="btn btn-sm" onClick={() => setShowShare(true)} title="Paylaş">🔗 Paylaş</button>
+              <button className="btn btn-sm" onClick={() => setShowShare(true)}>{t('pad.share')}</button>
               <button
                 className={`btn btn-sm ${broadcasting ? 'btn-primary' : ''}`}
                 onClick={toggleBroadcast}
-                title={broadcasting ? 'Yayını kapat' : 'İzleyicilere imleç yayını'}
+                title={t(broadcasting ? 'pad.broadcastTitleOn' : 'pad.broadcastTitleOff')}
               >
-                📡 {broadcasting ? 'Yayın açık' : 'Yayın'}
+                {t(broadcasting ? 'pad.broadcastOn' : 'pad.broadcast')}
               </button>
               <button
                 className="btn btn-sm"
                 onClick={() => window.open(`/v/${pad.viewToken}`, '_blank', 'noopener')}
-                title="Öğrenci görünümü"
+                title={t('pad.studentView')}
+                aria-label={t('pad.studentView')}
               >
                 👁
               </button>
@@ -378,15 +384,15 @@ export default function PadOwner(): JSX.Element {
                 className="btn btn-sm"
                 onClick={() => navigate(`/pad/${pad.id}/history`)}
                 disabled={!canHistory}
-                title={canHistory ? 'Sürüm geçmişi' : 'Sürüm geçmişi Pro planda'}
+                title={t(canHistory ? 'pad.historyTitle' : 'pad.historyLocked')}
               >
-                🕘 Geçmiş
+                {t('pad.history')}
               </button>
-              <button className="btn btn-sm" onClick={() => void copyAll()} title="Tümünü kopyala">📋</button>
-              <button className="btn btn-sm" onClick={download} title="İndir">⬇</button>
-              <button className="btn btn-sm" onClick={() => void enterPresentation()} title="Sunum modu">🎬</button>
-              <button className="btn btn-sm" onClick={() => setShowHelp(true)} title="Kısayollar">⌨</button>
-              <button className="btn btn-sm" onClick={() => setShowSettings((v) => !v)} title="Ayarlar">⚙</button>
+              <button className="btn btn-sm" onClick={() => void copyAll()} title={t('pad.copyAll')} aria-label={t('pad.copyAll')}>📋</button>
+              <button className="btn btn-sm" onClick={download} title={t('pad.download')} aria-label={t('pad.download')}>⬇</button>
+              <button className="btn btn-sm" onClick={() => void enterPresentation()} title={t('pad.present')} aria-label={t('pad.present')}>🎬</button>
+              <button className="btn btn-sm" onClick={() => setShowHelp(true)} title={t('pad.shortcuts')} aria-label={t('pad.shortcuts')}>⌨</button>
+              <button className="btn btn-sm" onClick={() => setShowSettings((v) => !v)} title={t('pad.settings')} aria-label={t('pad.settings')}>⚙</button>
               <ConnectionDot status={status} />
               <PresenceBar presence={presence} selfName={nickname} selfColor={color} />
             </>
@@ -418,7 +424,7 @@ export default function PadOwner(): JSX.Element {
           onCursorChange={setCursor}
           onContentChange={onContentChange}
           onReady={setCtx}
-          onError={(msg) => toast.show(msg, 'error')}
+          onError={() => toast.show(t('view.unavailable'), 'error')}
         />
       </div>
 
@@ -446,15 +452,15 @@ export default function PadOwner(): JSX.Element {
         <button
           className="presentation-exit"
           onClick={() => void exitPresentation()}
-          title="Sunumdan çık (Esc)"
+          title={t('pad.exitPresentationTitle')}
         >
-          ✕ Sunumdan çık
+          {t('pad.exitPresentation')}
         </button>
       )}
 
       <div className="sr-only" aria-live="polite">
-        {languageLabel(pad.language)} · bağlantı {status}
-        {broadcasting ? ' · yayın açık' : ''}
+        {langLabel(pad.language)}, {t(status === 'connected' ? 'conn.connected' : status === 'connecting' ? 'conn.connecting' : 'conn.disconnected')}
+        {broadcasting ? `, ${t('pad.broadcastingSr')}` : ''}
       </div>
     </div>
   );

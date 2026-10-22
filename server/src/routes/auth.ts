@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import rateLimit from 'express-rate-limit';
 import {
   ChangePasswordSchema,
@@ -23,6 +23,7 @@ import { sendError } from '../util/errors';
 import { randomId } from '../util/tokens';
 import type { UserRow } from '../util/rows';
 import { getEntitlements, getSiteSettings } from '../account/entitlements';
+import { tReq } from '../i18n';
 
 // Zamanlama farkından "bu e-posta kayıtlı mı" bilgisi sızmasın diye, kullanıcı
 // bulunamadığında da bir bcrypt karşılaştırması yapılır.
@@ -36,7 +37,7 @@ export function authRouter(db: DB, cfg: AppConfig): Router {
     limit: cfg.LOGIN_RATE_MAX,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
-    message: { error: 'Çok fazla deneme yaptınız. Lütfen daha sonra tekrar deneyin.', code: 'RATE_LIMIT' }
+    message: (req: Request) => ({ error: tReq(req, 'Çok fazla deneme yaptınız. Lütfen daha sonra tekrar deneyin.'), code: 'RATE_LIMIT' })
   });
 
   const registerLimiter = rateLimit({
@@ -44,7 +45,7 @@ export function authRouter(db: DB, cfg: AppConfig): Router {
     limit: cfg.REGISTER_RATE_MAX,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
-    message: { error: 'Bu bağlantıdan çok fazla kayıt denemesi yapıldı. Bir saat sonra tekrar deneyin.', code: 'RATE_LIMIT' }
+    message: (req: Request) => ({ error: tReq(req, 'Bu bağlantıdan çok fazla kayıt denemesi yapıldı. Bir saat sonra tekrar deneyin.'), code: 'RATE_LIMIT' })
   });
 
   function meBody(userId: string): MeResponse {
@@ -99,6 +100,7 @@ export function authRouter(db: DB, cfg: AppConfig): Router {
       return;
     }
     const { name, email, password } = parsed.data;
+    const locale = parsed.data.locale ?? null;
     const exists = db.prepare('SELECT id FROM users WHERE email = ? COLLATE NOCASE').get(email);
     if (exists) {
       sendError(res, 409, 'Bu e-posta adresiyle zaten bir hesap var. Giriş yapmayı deneyin.', 'EMAIL_TAKEN');
@@ -108,9 +110,9 @@ export function authRouter(db: DB, cfg: AppConfig): Router {
     const now = Date.now();
     const hash = await hashPassword(password);
     db.prepare(
-      `INSERT INTO users(id, email, name, password_hash, role, created_at, plan, status, signup_source, last_login_at)
-       VALUES (?, ?, ?, ?, 'teacher', ?, 'free', 'active', 'self', ?)`
-    ).run(id, email.toLowerCase(), name, hash, now, now);
+      `INSERT INTO users(id, email, name, password_hash, role, created_at, plan, status, signup_source, last_login_at, locale)
+       VALUES (?, ?, ?, ?, 'teacher', ?, 'free', 'active', 'self', ?, ?)`
+    ).run(id, email.toLowerCase(), name, hash, now, now, locale);
 
     const sid = createSession(db, id, cfg.SESSION_DAYS);
     setSessionCookie(res, sid, cfg);
@@ -163,7 +165,12 @@ export function authRouter(db: DB, cfg: AppConfig): Router {
       sendError(res, 400, 'Ad geçersiz', 'INVALID_INPUT');
       return;
     }
-    db.prepare('UPDATE users SET name = ? WHERE id = ?').run(parsed.data.name, req.user!.id);
+    if (parsed.data.name !== undefined) {
+      db.prepare('UPDATE users SET name = ? WHERE id = ?').run(parsed.data.name, req.user!.id);
+    }
+    if (parsed.data.locale !== undefined) {
+      db.prepare('UPDATE users SET locale = ? WHERE id = ?').run(parsed.data.locale, req.user!.id);
+    }
     res.json(meBody(req.user!.id));
   });
 

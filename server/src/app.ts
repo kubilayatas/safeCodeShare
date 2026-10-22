@@ -17,10 +17,11 @@ import { versionsRouter } from './routes/versions';
 import { publicRouter } from './routes/public';
 import { formatRouter } from './routes/format';
 import { healthRouter } from './routes/health';
-import { errorHandler, HttpError } from './util/errors';
+import { billingRouter, billingWebhookHandler } from './routes/billing';
+import { errorHandler, HttpError, sendError } from './util/errors';
 import { getEntitlements } from './account/entitlements';
 
-export const VERSION = '2.0.0';
+export const VERSION = '3.1.0';
 
 export function createApp(db: DB, cfg: AppConfig): Express {
   const app = express();
@@ -81,6 +82,9 @@ export function createApp(db: DB, cfg: AppConfig): Express {
     })(req, res, next);
   });
 
+  // Lemon Squeezy webhook'u ham gövdeyle imzalanır; JSON ayrıştırıcıdan önce gelmeli.
+  app.post('/api/billing/webhook', ...billingWebhookHandler(db, cfg));
+
   app.use(express.json({ limit: '2mb' }));
   app.use(cookieParser());
   app.use(loadUserFromSession(db, cfg));
@@ -104,13 +108,14 @@ export function createApp(db: DB, cfg: AppConfig): Express {
   app.use('/api', formatRouter(db, cfg));
   app.use('/api/auth', authRouter(db, cfg));
   app.use('/api/admin', adminRouter(db, cfg));
+  app.use('/api', billingRouter(db, cfg));
   app.use('/api', coursesRouter(db));
   app.use('/api', topicsRouter(db));
   app.use('/api', padsRouter(db));
   app.use('/api', versionsRouter(db));
 
   app.use('/api', (_req, res) => {
-    res.status(404).json({ error: 'Bulunamadı', code: 'NOT_FOUND' });
+    sendError(res, 404, 'Bulunamadı', 'NOT_FOUND');
   });
 
   if (cfg.isProd) {

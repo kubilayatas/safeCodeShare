@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useI18n } from '../i18n';
 
 type Props = {
   open: boolean;
@@ -15,12 +16,13 @@ export default function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = 'Onayla',
-  cancelLabel = 'Vazgeç',
+  confirmLabel,
+  cancelLabel,
   danger,
   onConfirm,
   onCancel
 }: Props): JSX.Element | null {
+  const { t } = useI18n();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent): void => {
@@ -39,9 +41,9 @@ export default function ConfirmDialog({
         <h3 id="confirm-title" style={{ marginTop: 0 }}>{title}</h3>
         <p style={{ marginTop: 8, color: 'var(--fg-muted)' }}>{message}</p>
         <div className="modal-actions">
-          <button className="btn" onClick={onCancel}>{cancelLabel}</button>
+          <button className="btn" onClick={onCancel}>{cancelLabel ?? t('common.cancel')}</button>
           <button className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`} onClick={onConfirm}>
-            {confirmLabel}
+            {confirmLabel ?? t('common.confirm')}
           </button>
         </div>
       </div>

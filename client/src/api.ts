@@ -1,7 +1,13 @@
 // API çağrıları için ince bir sarmalayıcı.
+import { getCurrentLocale } from './i18n';
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public code: string) {
+  constructor(
+    public status: number,
+    message: string,
+    public code: string,
+    public data: Record<string, unknown> = {}
+  ) {
     super(message);
     this.name = 'ApiError';
   }
@@ -13,6 +19,8 @@ type InitWithJson = Omit<RequestInit, 'body'> & {
 
 export async function apiFetch<T>(path: string, init: InitWithJson = {}): Promise<T> {
   const headers = new Headers(init.headers);
+  // Sunucu hata mesajlarını kullanıcının dilinde döndürsün.
+  headers.set('X-Locale', getCurrentLocale());
   let body: BodyInit | undefined;
 
   const method = (init.method ?? 'GET').toUpperCase();
@@ -32,13 +40,13 @@ export async function apiFetch<T>(path: string, init: InitWithJson = {}): Promis
   });
 
   if (!res.ok) {
-    let data: { error?: string; code?: string } = {};
+    let data: { error?: string; code?: string } & Record<string, unknown> = {};
     try {
-      data = (await res.json()) as { error?: string; code?: string };
+      data = (await res.json()) as { error?: string; code?: string } & Record<string, unknown>;
     } catch {
       // yut
     }
-    throw new ApiError(res.status, data.error ?? 'Bilinmeyen hata', data.code ?? 'UNKNOWN');
+    throw new ApiError(res.status, data.error ?? `HTTP ${res.status}`, data.code ?? 'UNKNOWN', data);
   }
 
   if (res.status === 204) return undefined as T;
@@ -78,7 +86,7 @@ export async function formatCode(
   req: FormatRequest,
   editToken?: string
 ): Promise<FormatResponse> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', 'X-Locale': getCurrentLocale() };
   if (editToken) headers['X-Edit-Token'] = editToken;
 
   const res = await fetch('/api/format', {
@@ -93,7 +101,7 @@ export async function formatCode(
   }
 
   if (res.status === 422) {
-    let data: FormatErrorBody = { error: 'Biçimlendirme başarısız' };
+    let data: FormatErrorBody = { error: 'Formatting failed' };
     try {
       data = (await res.json()) as FormatErrorBody;
     } catch {
@@ -111,5 +119,5 @@ export async function formatCode(
   } catch {
     /* yut */
   }
-  throw new ApiError(res.status, data.error ?? 'Biçimlendirme başarısız', data.code ?? 'UNKNOWN');
+  throw new ApiError(res.status, data.error ?? 'Formatting failed', data.code ?? 'UNKNOWN');
 }

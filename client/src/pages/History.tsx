@@ -1,33 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { PadFull, VersionFull, VersionSummary } from '@safecodeshare/shared';
-import { languageLabel } from '@safecodeshare/shared';
 import { apiFetch, ApiError } from '../api';
 import { useToast } from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ReadOnlyCodeView from '../components/ReadOnlyCodeView';
 import { loadSettings, type AppSettings } from '../editor/settings';
-
-function fmtDate(ms: number): string {
-  const d = new Date(ms);
-  return d.toLocaleString('tr-TR');
-}
-
-function relative(ms: number): string {
-  const diff = Date.now() - ms;
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'az önce';
-  if (m < 60) return `${m} dk önce`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h} saat önce`;
-  const d = Math.floor(h / 24);
-  return `${d} gün önce`;
-}
+import { useI18n } from '../i18n';
+import { useLangLabel } from '../i18n/LocalePicker';
 
 export default function History(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const toast = useToast();
+  const { t, tn, formatDateTime, formatRelative } = useI18n();
+  const langLabel = useLangLabel();
   const [settings] = useState<AppSettings>(() => loadSettings());
 
   const [pad, setPad] = useState<PadFull | null>(null);
@@ -60,7 +47,7 @@ export default function History(): JSX.Element {
         setSelectedId(versionsRes.versions[0].id);
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Sürümler yüklenemedi');
+      setError(err instanceof ApiError ? err.message : t('history.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -83,7 +70,7 @@ export default function History(): JSX.Element {
         if (!cancelled) setSelected(r.version);
       })
       .catch((err) => {
-        if (!cancelled) toast.show(err instanceof ApiError ? err.message : 'İçerik yüklenemedi', 'error');
+        if (!cancelled) toast.show(err instanceof ApiError ? err.message : t('history.contentFailed'), 'error');
       })
       .finally(() => {
         if (!cancelled) setLoadingContent(false);
@@ -97,17 +84,17 @@ export default function History(): JSX.Element {
     if (!pad || !selected) return;
     setConfirm({
       open: true,
-      title: 'Bu sürüme geri dön',
-      message: `Mevcut hali "Geri yükleme öncesi" etiketiyle kaydedilecek ve bu sürüm uygulanacak. Devam?`,
+      title: t('history.restoreTitle'),
+      message: t('history.restoreMsg'),
       onConfirm: async () => {
         setConfirm((c) => ({ ...c, open: false }));
         setRestoring(true);
         try {
           await apiFetch(`/api/pads/${pad.id}/versions/${selected.id}/restore`, { method: 'POST' });
-          toast.show('Sürüm geri yüklendi', 'success');
+          toast.show(t('history.restored'), 'success');
           await loadAll();
         } catch (err) {
-          const msg = err instanceof ApiError ? err.message : 'Geri yükleme başarısız';
+          const msg = err instanceof ApiError ? err.message : t('history.restoreFailed');
           toast.show(msg, 'error');
         } finally {
           setRestoring(false);
@@ -123,10 +110,10 @@ export default function History(): JSX.Element {
         `/api/pads/${pad.id}/versions/${selected.id}/duplicate`,
         { method: 'POST' }
       );
-      toast.show('Yeni pad oluşturuldu', 'success');
+      toast.show(t('history.duplicated'), 'success');
       navigate(`/pad/${r.pad.id}`);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Kopyalama başarısız';
+      const msg = err instanceof ApiError ? err.message : t('history.duplicateFailed');
       toast.show(msg, 'error');
     }
   };
@@ -144,9 +131,9 @@ export default function History(): JSX.Element {
   if (error || !pad) {
     return (
       <div className="error-page">
-        <h2>Hata</h2>
-        <p>{error ?? 'Pad bulunamadı'}</p>
-        <button className="btn" onClick={() => navigate('/dashboard')}>Panele dön</button>
+        <h2>{t('common.error')}</h2>
+        <p>{error ?? t('pad.notFound')}</p>
+        <button className="btn" onClick={() => navigate('/dashboard')}>{t('pad.backToDashboard')}</button>
       </div>
     );
   }
@@ -154,14 +141,14 @@ export default function History(): JSX.Element {
   return (
     <div className={`history-page theme-${settings.theme}`}>
       <div className="history-header">
-        <button className="btn btn-sm" onClick={() => navigate(`/pad/${pad.id}`)}>← Pad'e dön</button>
-        <h1>🕘 Sürüm geçmişi — {pad.title}</h1>
-        <span className="muted">{versions.length} sürüm</span>
+        <button className="btn btn-sm" onClick={() => navigate(`/pad/${pad.id}`)}>{t('history.back')}</button>
+        <h1>{t('history.title', { title: pad.title })}</h1>
+        <span className="muted">{tn('history.count', versions.length)}</span>
       </div>
 
       <div className="history-body">
         <aside className="history-list">
-          {list.length === 0 && <p className="muted">Bu padde henüz kayıtlı sürüm yok.</p>}
+          {list.length === 0 && <p className="muted">{t('history.none')}</p>}
           {list.map((v) => (
             <button
               key={v.id}
@@ -169,10 +156,10 @@ export default function History(): JSX.Element {
               onClick={() => setSelectedId(v.id)}
             >
               <div className="history-item-title">
-                {v.isAuto ? '🤖 Otomatik' : `✏️ ${v.label ?? 'Manuel sürüm'}`}
+                {v.isAuto ? t('history.auto') : `✏️ ${v.label ?? t('history.manual')}`}
               </div>
               <div className="history-item-sub muted">
-                {relative(v.createdAt)} · {fmtDate(v.createdAt)}
+                {formatRelative(v.createdAt)}, {formatDateTime(v.createdAt)}
               </div>
             </button>
           ))}
@@ -184,11 +171,11 @@ export default function History(): JSX.Element {
               <div className="history-content-head">
                 <div>
                   <strong>
-                    {selected.isAuto ? '🤖 Otomatik' : `✏️ ${selected.label ?? 'Manuel sürüm'}`}
+                    {selected.isAuto ? t('history.auto') : `✏️ ${selected.label ?? t('history.manual')}`}
                   </strong>
                   <div className="muted" style={{ fontSize: 12 }}>
-                    {fmtDate(selected.createdAt)} · {languageLabel(selected.language)} ·{' '}
-                    {selected.contentText.length} karakter
+                    {formatDateTime(selected.createdAt)}, {langLabel(selected.language)},{' '}
+                    {tn('history.chars', selected.contentText.length)}
                   </div>
                 </div>
                 <div className="history-content-actions">
@@ -197,16 +184,16 @@ export default function History(): JSX.Element {
                     onClick={onRestore}
                     disabled={restoring}
                   >
-                    {restoring ? 'Uygulanıyor…' : 'Bu sürüme geri dön'}
+                    {t(restoring ? 'history.applying' : 'history.restoreTitle')}
                   </button>
                   <button className="btn btn-sm" onClick={() => void onDuplicate()}>
-                    Yeni pad olarak kopyala
+                    {t('history.asNew')}
                   </button>
                   <a
                     className="btn btn-sm"
                     href={`/api/pads/${pad.id}/versions/${selected.id}/download`}
                   >
-                    ⬇ İndir
+                    {t('history.download')}
                   </a>
                 </div>
               </div>
@@ -225,7 +212,7 @@ export default function History(): JSX.Element {
               </div>
             </>
           )}
-          {!selected && <p className="muted">Soldan bir sürüm seçin.</p>}
+          {!selected && <p className="muted" style={{ padding: 16 }}>{t('history.pick')}</p>}
         </section>
       </div>
 

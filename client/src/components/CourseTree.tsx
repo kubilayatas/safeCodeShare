@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { PadSummary, TreeCourse } from '@safecodeshare/shared';
+import { useI18n } from '../i18n';
 
 type Selection =
   | { kind: 'none' }
@@ -34,6 +35,7 @@ type NodeMenuProps = {
 };
 
 function NodeMenu({ onRename, onUp, onDown, onDelete, extra }: NodeMenuProps): JSX.Element {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   return (
     <div className="node-menu">
@@ -43,17 +45,18 @@ function NodeMenu({ onRename, onUp, onDown, onDelete, extra }: NodeMenuProps): J
           e.stopPropagation();
           setOpen((v) => !v);
         }}
-        title="Menü"
+        title={t('tree.menu')}
+        aria-label={t('tree.menu')}
       >
         ⋮
       </button>
       {open && (
         <div className="node-menu-pop" onClick={() => setOpen(false)}>
-          <button onClick={onRename}>Yeniden adlandır</button>
-          <button onClick={onUp}>Yukarı taşı</button>
-          <button onClick={onDown}>Aşağı taşı</button>
+          <button onClick={onRename}>{t('tree.rename')}</button>
+          <button onClick={onUp}>{t('tree.moveUp')}</button>
+          <button onClick={onDown}>{t('tree.moveDown')}</button>
           {extra}
-          <button className="danger" onClick={onDelete}>Sil</button>
+          <button className="danger" onClick={onDelete}>{t('common.delete')}</button>
         </div>
       )}
     </div>
@@ -62,6 +65,7 @@ function NodeMenu({ onRename, onUp, onDown, onDelete, extra }: NodeMenuProps): J
 
 export default function CourseTree(props: Props): JSX.Element {
   const { courses, unassigned, selection, onSelect } = props;
+  const { t } = useI18n();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   function toggle(key: string): void {
@@ -71,7 +75,7 @@ export default function CourseTree(props: Props): JSX.Element {
   return (
     <div className="tree">
       {courses.length === 0 && unassigned.length === 0 && (
-        <p className="muted">Henüz ders veya kod yok. "+ Ders" ile başla.</p>
+        <p className="muted">{t('tree.empty')}</p>
       )}
 
       {courses.map((tc) => {
@@ -89,7 +93,8 @@ export default function CourseTree(props: Props): JSX.Element {
                   e.stopPropagation();
                   toggle(`c:${tc.course.id}`);
                 }}
-                aria-label={courseCollapsed ? 'Aç' : 'Kapat'}
+                aria-label={t(courseCollapsed ? 'tree.expand' : 'tree.collapse')}
+                aria-expanded={!courseCollapsed}
               >
                 {courseCollapsed ? '▸' : '▾'}
               </button>
@@ -102,9 +107,9 @@ export default function CourseTree(props: Props): JSX.Element {
                 extra={
                   <>
                     <button onClick={() => props.onCopyCourseLink(tc.course.viewToken)}>
-                      Ders linkini kopyala
+                      {t('tree.copyCourseLink')}
                     </button>
-                    <button onClick={() => props.onExportCourse(tc.course.id)}>Zip indir</button>
+                    <button onClick={() => props.onExportCourse(tc.course.id)}>{t('tree.downloadZip')}</button>
                   </>
                 }
               />
@@ -113,7 +118,7 @@ export default function CourseTree(props: Props): JSX.Element {
             {!courseCollapsed && (
               <div className="tree-children">
                 <button className="tree-new" onClick={() => props.onNewTopic(tc.course.id)}>
-                  + Konu
+                  {t('tree.addTopic')}
                 </button>
 
                 {tc.topics.map(({ topic, pads }) => {
@@ -134,6 +139,8 @@ export default function CourseTree(props: Props): JSX.Element {
                             e.stopPropagation();
                             toggle(`t:${topic.id}`);
                           }}
+                          aria-label={t(topicCollapsed ? 'tree.expand' : 'tree.collapse')}
+                          aria-expanded={!topicCollapsed}
                         >
                           {topicCollapsed ? '▸' : '▾'}
                         </button>
@@ -166,7 +173,7 @@ export default function CourseTree(props: Props): JSX.Element {
                               </div>
                             );
                           })}
-                          {pads.length === 0 && <div className="muted" style={{ padding: '4px 8px' }}>— boş —</div>}
+                          {pads.length === 0 && <div className="muted" style={{ padding: '4px 8px' }}>{t('tree.emptyTopic')}</div>}
                         </div>
                       )}
                     </div>
@@ -175,7 +182,7 @@ export default function CourseTree(props: Props): JSX.Element {
 
                 {tc.loosePads.length > 0 && (
                   <div className="tree-loose">
-                    <div className="tree-row-label">Konusuz kodlar</div>
+                    <div className="tree-row-label">{t('tree.ungrouped')}</div>
                     {tc.loosePads.map((p) => {
                       const isPadSelected = selection.kind === 'pad' && selection.padId === p.id;
                       return (
@@ -205,7 +212,7 @@ export default function CourseTree(props: Props): JSX.Element {
       {unassigned.length > 0 && (
         <div className="tree-course">
           <div className="tree-row tree-row-course">
-            <span className="tree-title">📂 Derssiz kodlar</span>
+            <span className="tree-title">📂 {t('dash.unassigned')}</span>
           </div>
           <div className="tree-children">
             {unassigned.map((p) => {

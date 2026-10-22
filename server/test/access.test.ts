@@ -135,7 +135,7 @@ describe('resolveAccess', () => {
     expect(a.level).toBe('none');
   });
 
-  it('12. visible_from gelecekte → none + Türkçe saat mesajı', () => {
+  it('12. visible_from gelecekte → none + yayın zamanı (istemci yerel saatle gösterir)', () => {
     const future = new Date(NOW + 60 * 60 * 1000);
     future.setHours(14, 30, 0, 0);
     const a = resolveAccess(pad({ visible_from: future.getTime() }), {
@@ -145,7 +145,8 @@ describe('resolveAccess', () => {
       now: NOW
     });
     expect(a.level).toBe('none');
-    expect(a.reason).toMatch(/14:30/);
+    expect(a.reason).toBe('Bu kod henüz yayınlanmadı');
+    expect(a.availableAt).toBe(future.getTime());
   });
 
   it('13. şifreli + kilit açılmamış → none + "Şifre gerekli"', () => {

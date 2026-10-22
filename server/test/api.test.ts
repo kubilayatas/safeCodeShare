@@ -251,7 +251,7 @@ describe('SafeCodeShare API', () => {
     expect(dup.body.pad.id).not.toBe(src.id);
     expect(dup.body.pad.editToken).not.toBe(src.editToken);
     expect(dup.body.pad.viewToken).not.toBe(src.viewToken);
-    expect(dup.body.pad.title).toContain('kopya');
+    expect(dup.body.pad.title).toBe('Kaynak (copy)');
   });
 
   it('token yenileme yeni token üretir ve eskisini geçersiz kılar', async () => {

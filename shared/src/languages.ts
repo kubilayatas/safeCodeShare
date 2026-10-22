@@ -28,7 +28,7 @@ export type Language = {
 
 // Tablo: spesifikasyon §8
 export const LANGUAGES: readonly Language[] = [
-  { id: 'plaintext',  label: 'Düz metin',        extension: '.txt',  formatter: null },
+  { id: 'plaintext',  label: 'Plain text',       extension: '.txt',  formatter: null },
   { id: 'javascript', label: 'JavaScript',       extension: '.js',   formatter: 'prettier-babel' },
   { id: 'jsx',        label: 'JavaScript (JSX)', extension: '.jsx',  formatter: 'prettier-babel' },
   { id: 'typescript', label: 'TypeScript',       extension: '.ts',   formatter: 'prettier-typescript' },

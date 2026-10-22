@@ -1,8 +1,9 @@
 // Oturumdaki kullanıcı ve plan hakları — tüm sayfalar buradan okur.
 // Not: Buradaki kilitler yalnızca kullanıcıya yol göstermek içindir; asıl kontrol sunucudadır.
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Entitlements, FeatureKey, MeResponse, PublicUser } from '@safecodeshare/shared';
 import { apiFetch } from './api';
+import { useI18n } from './i18n';
 
 type AccountState = {
   user: PublicUser | null;
@@ -21,6 +22,14 @@ export function AccountProvider({
   children: ReactNode;
 }): JSX.Element {
   const [me, setMeState] = useState<MeResponse | null>(initial);
+  const { locale, setLocale } = useI18n();
+  // Giriş yapınca hesabın dil tercihi bu cihaza da uygulanır.
+  const prefLocale = me?.user.locale ?? null;
+  useEffect(() => {
+    if (prefLocale && prefLocale !== locale) void setLocale(prefLocale);
+    // yalnızca hesap tercihi değiştiğinde çalışsın
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefLocale]);
   const refresh = useCallback(async () => {
     try {
       setMeState(await apiFetch<MeResponse>('/api/auth/me'));
@@ -37,7 +46,7 @@ export function AccountProvider({
 
 export function useAccount(): AccountState {
   const ctx = useContext(AccountContext);
-  if (!ctx) throw new Error('useAccount, AccountProvider içinde kullanılmalı');
+  if (!ctx) throw new Error('useAccount must be used inside AccountProvider');
   return ctx;
 }
 

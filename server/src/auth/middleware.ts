@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { AppConfig } from '../config';
 import type { DB } from '../db';
-import type { PublicUser, Role } from '@safecodeshare/shared';
+import { isLocale, type PublicUser, type Role } from '@safecodeshare/shared';
 import { findSession, SESSION_COOKIE } from './sessions';
 import { sendError } from '../util/errors';
 import type { UserRow } from '../util/rows';
@@ -24,7 +24,8 @@ export function toPublicUser(row: UserRow): PublicUser {
     createdAt: row.created_at,
     plan: row.plan === 'pro' ? 'pro' : 'free',
     planExpiresAt: row.plan_expires_at ?? null,
-    status: row.status === 'suspended' ? 'suspended' : 'active'
+    status: row.status === 'suspended' ? 'suspended' : 'active',
+    locale: isLocale(row.locale) ? row.locale : null
   };
 }
 

@@ -58,7 +58,7 @@ export default function AdBanner({
       (window.adsbygoogle = window.adsbygoogle || []).push({});
       pushedRef.current = true;
     } catch (err) {
-      console.warn('[AdSense] Reklam yüklenirken uyarı:', err);
+      console.warn('[AdSense] ad load warning:', err);
     }
   }, [clientId, slot]);
 
@@ -67,10 +67,10 @@ export default function AdBanner({
     if (hideIfEmpty) return null;
 
     return (
-      <div className={`ad-placeholder-box ${className}`} style={style} title="Google AdSense Reklam Alanı">
-        <span className="ad-badge">REKLAM ALANI</span>
+      <div className={`ad-placeholder-box ${className}`} style={style} title="Google AdSense">
+        <span className="ad-badge">AD</span>
         <span className="ad-placeholder-text">
-          Google AdSense Alanı {slot ? `(Slot: ${slot})` : ''} — <code>.env</code> dosyasına <code>VITE_ADSENSE_CLIENT_ID</code> eklediğinizde otomatik bağlanır.
+          Google AdSense {slot ? `(slot: ${slot})` : ''}: set <code>VITE_ADSENSE_CLIENT_ID</code> in <code>.env</code> to enable.
         </span>
       </div>
     );

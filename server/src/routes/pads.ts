@@ -16,6 +16,7 @@ import { padSummary } from '../util/rows';
 import type { CourseRow, PadRow, TopicRow } from '../util/rows';
 import { notifyAccessChange } from '../collab/accessNotify';
 import { getEntitlements, requireCapacity, requireFeature } from '../account/entitlements';
+import { tReq } from '../i18n';
 import { getCollabServer } from '../collab/singleton';
 import { updateMeta } from '../collab/directEdit';
 
@@ -395,7 +396,7 @@ export function padsRouter(db: DB): Router {
     const now = Date.now();
     const editToken = newEditToken();
     const viewToken = newViewToken();
-    const newTitle = `${src.title} (kopya)`.slice(0, 120);
+    const newTitle = tReq(req, '{title} (kopya)', { title: src.title }).slice(0, 120);
 
     db.prepare(
       `INSERT INTO pads(id, owner_id, course_id, topic_id, title, description, language, sort_order,

@@ -1,29 +1,31 @@
 import { useEffect } from 'react';
+import { useI18n, type MessageKey } from '../i18n';
 
 type Props = {
   open: boolean;
   onClose: () => void;
 };
 
-const ROWS: Array<[string, string]> = [
-  ['Ctrl + D', 'Sonraki eşleşmeyi seç'],
-  ['Ctrl + L', 'Satırı seç'],
-  ['Ctrl + Shift + K', 'Satırı sil'],
-  ['Ctrl + Shift + D', 'Satırı çoğalt'],
-  ['Ctrl + Shift + ↑ / ↓', 'Satırı yukarı/aşağı taşı'],
-  ['Ctrl + /', 'Yorumu aç/kapat'],
-  ['Ctrl + ] / [', 'Girintiyi artır / azalt'],
-  ['Ctrl + S', 'Manuel sürüm kaydet'],
-  ['Ctrl + Alt + F', 'Kodu biçimlendir'],
-  ['Ctrl + Shift + P', 'Sunum modu aç/kapat'],
-  ['Ctrl + F', 'Ara'],
-  ['Ctrl + H', 'Bul ve değiştir'],
-  ['Ctrl + Click', 'Çoklu imleç ekle'],
-  ['Alt + Sürükle', 'Dikdörtgen seçim'],
-  ['F1', 'Bu yardım penceresi']
+const ROWS: Array<[string, MessageKey]> = [
+  ['Ctrl + D', 'shortcuts.selectNext'],
+  ['Ctrl + L', 'shortcuts.selectLine'],
+  ['Ctrl + Shift + K', 'shortcuts.deleteLine'],
+  ['Ctrl + Shift + D', 'shortcuts.duplicateLine'],
+  ['Ctrl + Shift + ↑ / ↓', 'shortcuts.moveLine'],
+  ['Ctrl + /', 'shortcuts.toggleComment'],
+  ['Ctrl + ] / [', 'shortcuts.indent'],
+  ['Ctrl + S', 'shortcuts.saveVersion'],
+  ['Ctrl + Alt + F', 'shortcuts.format'],
+  ['Ctrl + Shift + P', 'shortcuts.presentation'],
+  ['Ctrl + F', 'shortcuts.find'],
+  ['Ctrl + H', 'shortcuts.replace'],
+  ['Ctrl + {click}', 'shortcuts.multiCursor'],
+  ['Alt + {drag}', 'shortcuts.rectSelect'],
+  ['F1', 'shortcuts.help']
 ];
 
 export default function ShortcutsHelp({ open, onClose }: Props): JSX.Element | null {
+  const { t } = useI18n();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent): void => {
@@ -39,14 +41,14 @@ export default function ShortcutsHelp({ open, onClose }: Props): JSX.Element | n
     <div className="modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="modal-card shortcuts-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3 style={{ margin: 0 }}>⌨ Kısayollar</h3>
-          <button className="icon-btn" onClick={onClose} title="Kapat">✕</button>
+          <h3>{t('shortcuts.title')}</h3>
+          <button className="icon-btn" onClick={onClose} title={t('common.close')} aria-label={t('common.close')}>✕</button>
         </div>
         <div className="shortcuts-table">
           {ROWS.map(([k, label]) => (
             <div key={k} className="shortcut-row">
-              <kbd>{k}</kbd>
-              <span>{label}</span>
+              <kbd dir="ltr">{k.replace('{click}', t('shortcuts.click')).replace('{drag}', t('shortcuts.drag'))}</kbd>
+              <span>{t(label)}</span>
             </div>
           ))}
         </div>

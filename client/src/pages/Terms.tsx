@@ -1,51 +1,47 @@
 import Shell from '../components/Shell';
+import { useI18n } from '../i18n';
 
 // ÖNEMLİ (site sahibi için): Bu metin genel bir başlangıç taslağıdır, hukuki danışmanlık değildir.
-// Siteyi herkese açmadan önce kendi bilgilerinizle (veri sorumlusu adı, iletişim adresi vb.)
-// güncelleyin ve gerekirse bir hukukçuya kontrol ettirin.
+// Siteyi herkese açmadan önce kendi bilgilerinizle (veri sorumlusu, iletişim adresi vb.)
+// güncelleyin ve hizmet verdiğiniz ülkelerin kurallarına (KVKK, GDPR vb.) göre bir hukukçuya
+// kontrol ettirin.
 export default function Terms(): JSX.Element {
+  const { t } = useI18n();
   return (
     <Shell narrow>
       <article className="prose">
-        <h1>Kullanım koşulları ve gizlilik</h1>
-        <p className="muted">Bu metni site yöneticisi kendi bilgileriyle güncellemelidir.</p>
+        <h1>{t('terms.title')}</h1>
+        <p className="muted">{t('terms.adminNote')}</p>
 
-        <h2>Hizmet</h2>
-        <p>
-          SafeCodeShare, öğretmenlerin derste kod paylaşmasını sağlar. Öğrenciler hesap açmadan,
-          öğretmenin verdiği linkle kodu izler.
-        </p>
+        <h2>{t('terms.serviceH')}</h2>
+        <p>{t('terms.serviceP')}</p>
 
-        <h2>Toplanan bilgiler</h2>
+        <h2>{t('terms.dataH')}</h2>
         <ul>
-          <li>Öğretmen hesabı için: ad, e-posta adresi ve parolanın şifrelenmiş hali.</li>
-          <li>Oluşturduğun dersler, konular, kodlar ve kodların sürüm geçmişi.</li>
-          <li>Oturumu açık tutmak için bir tarayıcı çerezi. Site yöneticisi reklam gösterimini açarsa reklam sağlayıcısı (Google AdSense) kendi çerezlerini kullanabilir.</li>
-          <li>Öğrencilerden hesap bilgisi alınmaz. Öğrencinin seçtiği takma ad yalnızca canlı derste görünür ve saklanmaz.</li>
+          <li>{t('terms.data1')}</li>
+          <li>{t('terms.data2')}</li>
+          <li>{t('terms.data3')}</li>
+          <li>{t('terms.data4')}</li>
         </ul>
 
-        <h2>Bilgilerin kullanımı</h2>
-        <p>
-          Bilgiler yalnızca hizmeti sunmak için kullanılır, üçüncü kişilere satılmaz. Site yöneticisi,
-          kötüye kullanımı önlemek için hesapları ve paylaşımları inceleyebilir, askıya alabilir veya silebilir.
-        </p>
+        <h2>{t('terms.useH')}</h2>
+        <p>{t('terms.useP')}</p>
 
-        <h2>Kurallar</h2>
+        <h2>{t('terms.rulesH')}</h2>
         <ul>
-          <li>Zararlı yazılım, kişisel veri veya telif hakkıyla korunan içerik paylaşma.</li>
-          <li>Hizmeti başkalarını rahatsız etmek veya yanıltmak için kullanma.</li>
+          <li>{t('terms.rules1')}</li>
+          <li>{t('terms.rules2')}</li>
         </ul>
 
-        <h2>Kopyalama ve AI/OCR koruması hakkında</h2>
-        <p>
-          Bu korumalar kopyalamayı büyük ölçüde zorlaştırır, ancak hiçbir web sistemi bunu tamamen
-          engelleyemez. Korumalar caydırıcıdır; garanti değildir.
-        </p>
+        <h2 id="payments">{t('terms.payH')}</h2>
+        <p>{t('terms.payP')}</p>
+        <p>{t('terms.refundP')}</p>
 
-        <h2>Haklarınız</h2>
-        <p>
-          Hesabının ve verilerinin silinmesini isteyebilirsin. Bunun için site yöneticisiyle iletişime geç.
-        </p>
+        <h2>{t('terms.protH')}</h2>
+        <p>{t('terms.protP')}</p>
+
+        <h2>{t('terms.rightsH')}</h2>
+        <p>{t('terms.rightsP')}</p>
       </article>
     </Shell>
   );
